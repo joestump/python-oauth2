@@ -2,8 +2,15 @@ import urllib
 import random
 import time
 
+OAUTH_VERSION = '1.0'
+
 DEFAULT_REQUEST_METHOD = 'GET'
-DEFAULT_SIGALG = 'sha1'
+
+# Signature methods supported by this library so far
+SIGNATURE_METHOD_HMAC_SHA1 = 'HMAC-SHA1'
+SIGNATURE_METHOD_PLAINTEXT = 'PLAINTEXT'
+
+DEFAULT_SIGNATURE_METHOD = SIGNATURE_METHOD_HMAC_SHA1
 
 class OAuthError(RuntimeError):
     # Any OAuth-related error condition
@@ -12,34 +19,37 @@ class OAuthError(RuntimeError):
         
 class OAuthToken():
     # A token object, mostly for testing
-    def __init__(self, token, secret, token_type='single-use'):
+    def __init__(self, token, secret, token_type='request'):
         self.token = token
         self.secret = secret
         self.token_type = token_type
         
+    def __str__(self):
+        return 'oauth_token=%s&oauth_token_secret=%s' % (self.token, self.secret)
+        
 # Base class for OAuthConsumer and OAuthServiceProvider
 class OAuth():
-
-    DEFAULT_ACCEPTABLE_TS_DELAY = 300 # in seconds, five minutes
+    oauth_version = OAUTH_VERSION
 
     def generate_nonce(self, length=8):
         # pseudorandom number
         return ''.join(str(random.randint(0, 9)) for i in range(length))
     
-    def is_valid_nonce(self, nonce, used_nonces):
+    def is_valid_nonce(self, nonce, recently_used_nonces):
         # check that this nonce is not in the list of used numbers.
         # list contents are determined by the service provider.
-        return not nonce in used_nonces
+        return not nonce in recently_used_nonces
 
     def generate_timestamp(self):
         # seconds since epoch (UTC)
         return int(time.time())
     
-    def is_valid_timestamp(self, ts, acceptable_delay=DEFAULT_ACCEPTABLE_TS_DELAY):
-        # check that the current timestamp as determined by the service provider
-        # is close enough to the timestamp provided by the consumer
-        # (within the acceptable delay).
-        return 0 <= self.generate_timestamp() - int(ts) <= acceptable_delay  
+    def is_valid_timestamp(self, ts, last_timestamp):
+        # Check that the current timestamp is sequentially greater than the last timestamp
+        # if the last timestamp is specified.
+        if last_timestamp:
+            return ts > last_timestamp
+        return True
     
     def generate_random_string(self, chars=None, length=16):
         # generate a random string
@@ -47,6 +57,17 @@ class OAuth():
         if chars is None:
             chars = self.DEFAULT_CHARS
         return ''.join(chars[random.randrange(len(chars))] for i in range(length))
+    
+    def get_endpoint_url(self, request_url):
+        try:
+            # find everything before the params
+            return request_url[:request_url.index('?')]
+        except:
+            return request_url
+        
+    def escape(self, s):
+        # escape '/' too
+        return urllib.quote(s, safe='')
     
     def normalize_request_parameters(self, request_params):
         '''
@@ -61,124 +82,96 @@ class OAuth():
         keys = request_params.keys()
         # sort alphabetically
         keys.sort()
-        # combine escaped key value pairs in string
-        normalized = ''.join('&%s=%s' % (str(k), request_params[k]) for k in keys)[1:] # remove the first ampersand
-        return urllib.quote(normalized)
+        # combine key value pairs in string and escape
+        normalized = self.escape('&'.join('%s=%s' % (str(k), request_params[k]) for k in keys))
+        return normalized
     
-    def get_http_request_uri(self, request_url):
-        try:
-            # find everything before the params
-            return request_url[:request_url.index('?')]
-        except:
-            return request_url
-        
-    def escape_http_request_uri(self, http_request_uri):
-        # escape '/' too
-        return urllib.quote(http_request_uri, safe='')
-
-    def sign_request(self, consumer_secret, consumer_key, oauth_sigalg=DEFAULT_SIGALG, **kwargs):
+    def concatinate_request_parameters(self, consumer_secret,
+        endpoint_url='', normalized_request_parameters='',
+        http_request_method=DEFAULT_REQUEST_METHOD, token_secret=''):
         '''
-        Sorts the parameters according to OAuth spec and
-        signs the string using the provided signing algorithm (oauth_sigalg).
-        
-        Possible values for oauth_sigalg are 'md5', 'sha1', and 'hmac'.
-        These are the ones included in standard Python modules and I'm pretty lazy.
-        More are available here: http://www.amk.ca/python/code/crypto.html
-        
-        Order of request parameters for signing:
-        
-        1. oauth_consumer_secret *: The Consumer Secret.
-        2. oauth_consumer_key *: The Consumer Key.
-        3. oauth_token : The Single-Use or Multi-Use Token.
-        4. oauth_token_secret : The Token Secret.
-        5. http_request_method *: The HTTP request method used to send the request. Value MUST be uppercase, for example: HEAD, GET, POST, etc.
-        6. http_request_uri *: The API Endpoint URL as defined in "Endpoint URLs".
-        7. normalized_request_parameters : The result string from step 1.
-        8. oauth_nonce *: The request nonce.
-        9. oauth_ts *: An integer representing the time of request, expressed in number of seconds after January 1, 1970 00:00:00 GMT.
- 
-        * required parameters
-        
-        Examples:
-        
-        Single-Use Token Request Example
+        The following items MUST be concatenated in order into a single string. Each item is separated by an '&' character (ASCII code 38), even if empty.
+
+           1. The URL as defined in "Endpoint URLs" excluding the query and fragment parts.
+           2. The normalized request parameters string from step 1.
+           3. The HTTP request method used to send the request. Value MUST be uppercase, for example: HEAD, GET, POST, etc.
+           4. The Consumer Secret, encoded per "Parameter Encoding".
+           5. The Token Secret, encoded per "Parameter Encoding" (empty value if oauth_token is not present).
         
         >>> oauth = OAuth()
-        >>> consumer_secret = '3a2cd35'
-        >>> consumer_key = '0685bd91'
-        >>> oauth_token = '540ad18'
-        >>> oauth_token_secret = 'x2s55k0'
-        >>> nonce = 'MTgzNTYxODk4Mw'
-        >>> ts = 1185517832
-        >>> http_request_uri = 'http://twitter.com/statuses/friends/123456.json'
-        >>> request_params = {'page':3, 'count':50}
-        >>> normalized_request_parameters = oauth.normalize_request_parameters(request_params)
-        >>> oauth.sign_request(consumer_secret, consumer_key, oauth_token=oauth_token, oauth_token_secret=oauth_token_secret, http_request_uri=http_request_uri, normalized_request_parameters=normalized_request_parameters, oauth_nonce=nonce, oauth_ts=ts)
-        'ea48706011440202ee979cb4b337db048e89f889'
+        >>> endpoint_url = 'http://photos.example.net/photos'
+        >>> normalized_request_parameters = 'file%3Dvacation.jpg%26oauth_consumer_key%3Ddpf43f3p2l4k3l03%26oauth_nonce%3Dkllo9940pd9333jh%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D1191242096%26oauth_token%3Dnnch734d00sl2jdk%26size%3Doriginal'
+        >>> token_secret = 'pfkkdhi9sl3r4s00'
+        >>> oauth.concatinate_request_parameters('kd94hf93k423kf44', endpoint_url=endpoint_url, normalized_request_parameters=normalized_request_parameters, http_request_method='GET', token_secret=token_secret)
+        'http://photos.example.net/photos&file%3Dvacation.jpg%26oauth_consumer_key%3Ddpf43f3p2l4k3l03%26oauth_nonce%3Dkllo9940pd9333jh%26oauth_signature_method%3DHMAC-SHA1%26oauth_timestamp%3D1191242096%26oauth_token%3Dnnch734d00sl2jdk%26size%3Doriginal&GET&kd94hf93k423kf44&pfkkdhi9sl3r4s00'
         '''
-        # TODO add HTTP error code and message to exceptions
-        if not 'http_request_uri' in kwargs:
-            raise OAuthError
-        if not 'oauth_nonce'in kwargs:
-            raise OAuthError
-        if not 'oauth_ts' in kwargs:
-            raise OAuthError
-            
-        sig_txt = 'oauth_consumer_secret=%s&oauth_consumer_key=%s' % (consumer_secret, consumer_key)
+        return '&'.join((endpoint_url, normalized_request_parameters, http_request_method, consumer_secret, token_secret))
+    
+    def sign_request(self, signature_method, consumer_secret,
+        token_secret='', endpoint_url='', request_parameters={},
+        http_request_method=DEFAULT_REQUEST_METHOD):
+        '''
+        The purpose of signing API requests is to prevent unauthorized parties
+        from using the Consumer Key and Tokens when making OAuth Endpoint URL requests or API Endpoint URL requests.
+        The signature process encodes the Consumer Secret and Token Secret into a verifiable value which is included with the request.
         
-        if 'oauth_token' in kwargs:
-            sig_txt += '&oauth_token=%s' % kwargs['oauth_token']
-        if 'oauth_token_secret' in kwargs:
-            sig_txt += '&oauth_token_secret=%s' % kwargs['oauth_token_secret']
-            
-        if 'http_request_method' in kwargs:
-            sig_txt += '&http_request_method=%s' % kwargs['http_request_method'].upper() # request method should be capitalized?
+        The process of generating the Signature Base String is as follows:
+        
+            1. Normalize request parameters
+            2. Concatenate request elements
+        
+        Next, sign the base string using the signature method specified.
+        Right now possible values for oauth_signature_method are 'PLAINTEXT' and 'HMAC-SHA1'.
+        More signature methods coming soon...
+        
+        >>> oauth = OAuth()
+        >>> consumer_secret = 'kd94hf93k423kf44'
+        >>> token_secret = 'pfkkdhi9sl3r4s00'
+        >>> endpoint_url = 'http://photos.example.net/photos'
+        >>> ts = 1191242096
+        >>> nonce = 'kllo9940pd9333jh'
+        
+        >>> signature_method = 'PLAINTEXT'
+        >>> request_parameters = {'file': 'vacation.jpg', 'size': 'original', 'oauth_consumer_key': 'dpf43f3p2l4k3l03', 'oauth_token': 'nnch734d00sl2jdk', 'oauth_signature_method': signature_method, 'oauth_timestamp': ts, 'oauth_nonce': nonce}
+        >>> oauth.sign_request(signature_method, consumer_secret, token_secret=token_secret)
+        'kd94hf93k423kf44.pfkkdhi9sl3r4s00'
+        
+        >>> signature_method = 'HMAC-SHA1'
+        >>> request_parameters = {'file': 'vacation.jpg', 'size': 'original', 'oauth_consumer_key': 'dpf43f3p2l4k3l03', 'oauth_token': 'nnch734d00sl2jdk', 'oauth_signature_method': signature_method, 'oauth_timestamp': ts, 'oauth_nonce': nonce}
+        >>> oauth.sign_request(signature_method, consumer_secret, token_secret=token_secret, endpoint_url=endpoint_url, request_parameters=request_parameters)
+        '3a4df91bba14e81cde073c9070beec993e45a2d6'
+        
+        '''
+        # Sign the request based on signature method
+        if signature_method == SIGNATURE_METHOD_PLAINTEXT:
+            # should be used over a secure channel such as HTTPS
+            return '.'.join((self.escape(consumer_secret), self.escape(token_secret)))
         else:
-            sig_txt += '&http_request_method=%s' % DEFAULT_REQUEST_METHOD
-        
-        sig_txt += '&http_request_uri=%s' % self.escape_http_request_uri(kwargs['http_request_uri'])
-        
-        if 'normalized_request_parameters' in kwargs:
-            sig_txt += '&normalized_request_parameters=%s' % kwargs['normalized_request_parameters']
-        
-        sig_txt += '&oauth_nonce=%s&oauth_ts=%s' % (str(kwargs['oauth_nonce']), str(kwargs['oauth_ts']))
-        
-        #print sig_txt
-        
-        if oauth_sigalg == 'md5':
-            import md5
-            msg = md5.new(sig_txt)
-        elif oauth_sigalg == 'sha1':
-            import sha
-            msg = sha.new(sig_txt)
-        elif oauth_sigalg == 'hmac':
+            # Normalize request parameters
+            normalized_request_parameters = self.normalize_request_parameters(request_parameters)
+            
+            # Concatinate request elements
+            signature_base_string = self.concatinate_request_parameters(
+                consumer_secret,
+                endpoint_url,
+                normalized_request_parameters,
+                http_request_method,
+                token_secret)
+            
+            # Create the key
+            key = '&'.join((self.escape(consumer_secret), self.escape(token_secret)))
+            
             import hmac
-            msg = hmac.new(sig_txt)
-        else: # invalid signing algorithm
-            raise OAuthError
-    
-        return msg.hexdigest()
-    
-    def check_sig(self, oauth_sig, consumer_secret, consumer_key, oauth_sigalg=DEFAULT_SIGALG, **kwargs):
-        '''
-        Check that the Service Provider creates the same signature as the Consumer-provided one.
-        
-        >>> oa = OAuth()
-        >>> consumer_key = 'asdf'
-        >>> consumer_secret = 'asdf'
-        >>> nonce = 17907867114999140772853922434221488511
-        >>> ts = 1186953553
-        >>> http_request_uri = 'https://sp.example.com/oauth/get_su_token'
-        >>> expected_sig = '099f1d72df072179f85a71546488519af7338861'
-        >>> oa.sign_request(consumer_secret, consumer_key, http_request_uri=http_request_uri, oauth_nonce=nonce, oauth_ts=ts)
-        '099f1d72df072179f85a71546488519af7338861'
-        >>> oa.check_sig(expected_sig, consumer_secret, consumer_key, http_request_uri=http_request_uri, oauth_nonce=nonce, oauth_ts=ts)
-        True
-        >>> consumer_key = 'ascf'
-        >>> oa.check_sig(expected_sig, consumer_secret, consumer_key, http_request_uri=http_request_uri, oauth_nonce=nonce, oauth_ts=ts)
-        False
-        '''
-        return self.sign_request(consumer_secret, consumer_key, oauth_sigalg=oauth_sigalg, **kwargs) == oauth_sig
+            import hashlib
+            
+            if signature_method == SIGNATURE_METHOD_HMAC_SHA1:
+                # use hmac with sha1
+                h = hmac.new(key, signature_base_string, hashlib.sha1)
+            else:
+                raise OAuthError('Invalid signing algorithm')
+            
+            # calculate the digest in hex string format 
+            return h.hexdigest()
 
 def _test():
     import doctest

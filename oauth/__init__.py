@@ -225,6 +225,10 @@ class OAuthServer(object):
     def verify_request(self, oauth_request):
         # -> OAuthToken
         pass
+    
+    # optional support for the authenticate header   
+    def build_authenticate_header(self, realm=''):
+        return {'WWW-Authenticate': 'OAuth realm="%s"' % realm}
         
     def _get_version(self, oauth_request):
         

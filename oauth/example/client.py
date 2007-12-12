@@ -148,7 +148,7 @@ def old_run_example():
         
 def pause():
     print ''
-    time.sleep(2)
+    #time.sleep(2)
 
 if __name__ == '__main__':
     run_example()

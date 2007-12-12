@@ -5,6 +5,7 @@ import oauth
 REQUEST_TOKEN_URL = 'https://photos.example.net/request_token'
 ACCESS_TOKEN_URL = 'https://photos.example.net/access_token'
 AUTHORIZATION_URL = 'https://photos.example.net/authorize'
+REALM = 'http://photos.example.net/'
 CALLBACK_URL = 'http://printer.example.com/request_token_ready'
 
 # example store for one of each thing
@@ -48,27 +49,37 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.oauth_server.add_signature_method(oauth.OAuthSignatureMethod_PLAINTEXT())
         BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
     
+    # example way to send an oauth error
+    def send_oauth_error(self, err=None):
+        # send a 401 error
+        self.send_error(401, str(err.message))
+        # return the authenticate header
+        header = build_authenticate_header(realm=REALM)
+        for k, v in header:
+            self.send_header(k, v) 
+    
     def do_GET(self):
         
         #print self.command, self.path, self.headers
         
         oauth_request = oauth.OAuthRequest.from_request(self.command, self.path, self.headers)
-        token = self.oauth_server.fetch_request_token(oauth_request)
         
-        self.send_response(200, 'OK')
-        self.end_headers()
-                    
-        # return the token
-        self.wfile.write(token.to_string())
-    
-    def send_oauth_error(self, err=None):
-        # send a 401 error
-        self.send_error(401, str(err.message))
+        # handle the request based on path
         
-        # add the WWW-Authenticate OAuth header
-        k, v = self.service_provider.get_www_authenticate_header(AUTHORIZATION_ENDPOINT)
+        # request token
+        if self.path == REQUEST_TOKEN_URL:
+            try:
+                # create a request token
+                token = self.oauth_server.fetch_request_token(oauth_request)
+                # send okay response
+                self.send_response(200, 'OK')
+                self.end_headers()
+                # return the token
+                self.wfile.write(token.to_string())
+            except:
+                self.send_oauth_error()
+            return
         
-        self.send_header(k, v)
     
     def get_consumer(self, params):
         try:

@@ -60,6 +60,7 @@ class RequestHandler(BaseHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         self.oauth_server = oauth.OAuthServer(MockOAuthDataStore())
         self.oauth_server.add_signature_method(oauth.OAuthSignatureMethod_PLAINTEXT())
+        self.oauth_server.add_signature_method(oauth.OAuthSignatureMethod_HMAC_SHA1())
         BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
     # example way to send an oauth error
@@ -74,7 +75,7 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
 
         # debug info
-        print self.command, self.path, self.headers
+        #print self.command, self.path, self.headers
 
         # construct the oauth request from the request parameters
         oauth_request = oauth.OAuthRequest.from_request(self.command, self.path, self.headers)

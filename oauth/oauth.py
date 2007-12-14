@@ -2,6 +2,10 @@ import cgi
 import urllib
 import time
 import random
+import urlparse
+import hmac
+import hashlib
+import base64
 
 VERSION = '1.0' # Hi Blaine!
 HTTP_METHOD = 'GET'
@@ -132,9 +136,30 @@ class OAuthRequest(object):
     def to_url(self):
         pass
 
-    def normalize_request_parameters(self):
-        pass
+    # return a string that consists of all the parameters that need to be signed
+    def get_normalized_parameters(self):
+        params = self.parameters
+        try:
+            # exclude the signature if it exists
+            del params['oauth_signature']
+        except:
+            pass
+        keys = params.keys()
+        # sort alphabetically
+        keys.sort()
+        # combine key value pairs in string and escape
+        return escape('&'.join('%s=%s' % (str(k), params[k]) for k in keys))
 
+    # just uppercases the http method
+    def get_normalized_http_method(self):
+        return self.http_method.upper()
+    
+    # parses the url and rebuilds it to be scheme://host/path
+    def get_normalized_http_url(self):
+        parts = urlparse.urlparse(self.http_url)
+        url_string = '%s://%s%s' % (parts.scheme, parts.netloc, parts.path)
+        return url_string
+        
     # set the signature parameter to the result of build_signature
     def sign_request(self, signature_method, consumer, token):
         # set the signature method
@@ -202,9 +227,9 @@ class OAuthRequest(object):
             # remove whitespace
             param = param.strip()
             # split key-value
-            param_parts = param.split('=')
+            param_parts = param.split('=', 1)
             # remove quotes and unescape the value
-            params[param_parts[0]] = urllib.unquote_plus(param_parts[1].strip('\"'))
+            params[param_parts[0]] = urllib.unquote(param_parts[1].strip('\"'))
         return params
 
 # OAuthServer is a worker to check a requests validity against a data store
@@ -418,7 +443,22 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
         return 'HMAC-SHA1'
 
     def build_signature(self, oauth_request, consumer, token):
-        raise NotImplementedError
+        sig = (
+            escape(oauth_request.get_normalized_http_method()),
+            escape(oauth_request.get_normalized_http_url()),
+            escape(oauth_request.get_normalized_parameters()),
+        )
+
+        key = '%s&' % consumer.secret
+        if token:
+            key += token.secret
+        raw = '&'.join(sig)
+
+        # hmac object
+        hashed = hmac.new(key, raw, hashlib.sha1)
+
+        # calculate the digest base 64
+        return base64.b64encode(hashed.digest())
 
 class OAuthSignatureMethod_PLAINTEXT(OAuthSignatureMethod):
 

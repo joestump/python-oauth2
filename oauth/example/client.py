@@ -60,6 +60,7 @@ def run_example():
     client = SimpleOAuthClient(SERVER, PORT, REQUEST_TOKEN_URL, ACCESS_TOKEN_URL, AUTHORIZATION_URL)
     consumer = oauth.OAuthConsumer(CONSUMER_KEY, CONSUMER_SECRET)
     signature_method_plaintext = oauth.OAuthSignatureMethod_PLAINTEXT()
+    signature_method_hmac_sha1 = oauth.OAuthSignatureMethod_HMAC_SHA1()
     pause()
 
     # get request token
@@ -107,7 +108,7 @@ def run_example():
     pause()
     parameters = {'file': 'vacation.jpg', 'size': 'original'} # resource specific params
     oauth_request = oauth.OAuthRequest.from_consumer_and_token(consumer, token=token, http_url=RESOURCE_URL, parameters=parameters)
-    oauth_request.sign_request(signature_method_plaintext, consumer, token)
+    oauth_request.sign_request(signature_method_hmac_sha1, consumer, token)
     print 'REQUEST'
     print 'parameters: %s' % str(oauth_request.parameters)
     pause()
@@ -118,7 +119,7 @@ def run_example():
 
 def pause():
     print ''
-    time.sleep(2)
+    time.sleep(1)
 
 if __name__ == '__main__':
     run_example()

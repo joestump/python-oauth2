@@ -1,12 +1,13 @@
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
+import urllib
 
-import oauth
+import oauth.oauth as oauth
 
 REQUEST_TOKEN_URL = 'https://photos.example.net/request_token'
 ACCESS_TOKEN_URL = 'https://photos.example.net/access_token'
 AUTHORIZATION_URL = 'https://photos.example.net/authorize'
+RESOURCE_URL = 'http://photos.example.net/photos'
 REALM = 'http://photos.example.net/'
-CALLBACK_URL = 'http://printer.example.com/request_token_ready'
 
 # example store for one of each thing
 class MockOAuthDataStore(object):
@@ -16,21 +17,23 @@ class MockOAuthDataStore(object):
         self.request_token = oauth.OAuthToken('requestkey', 'requestsecret')
         self.access_token = oauth.OAuthToken('accesskey', 'accesssecret')
         self.nonce = 'nonce'
-    
+
     def lookup_consumer(self, key):
         if key == self.consumer.key:
             return self.consumer
         return None
-    
-    def lookup_token(self, oauth_consumer, token_type, token_token):
-        # -> OAuthToken
-        raise NotImplementedError
-    
+
+    def lookup_token(self, token_type, token):
+        token_attrib = getattr(self, '%s_token' % token_type)
+        if token == token_attrib.key:
+            return token_attrib
+        return None
+
     def lookup_nonce(self, oauth_consumer, oauth_token, nonce):
         if oauth_token and oauth_consumer.key == self.consumer.key and (oauth_token.key == self.request_token.key or token.key == self.access_token.key) and nonce == self.nonce:
             return self.nonce
         else:
-            raise OAuthError('Nonce not found: %s' % str(nonce))
+            raise oauth.OAuthError('Nonce not found: %s' % str(nonce))
         return None
     
     def fetch_request_token(self, oauth_consumer):
@@ -39,8 +42,18 @@ class MockOAuthDataStore(object):
         return None
     
     def fetch_access_token(self, oauth_consumer, oauth_token):
-        # -> OAuthToken
-        raise NotImplementedError
+        if oauth_consumer.key == self.consumer.key and oauth_token.key == self.request_token.key:
+            # want to check here if token is authorized
+            # for mock store, we assume it is
+            return self.access_token
+        return None
+
+    def authorize_request_token(self, oauth_token):
+        if oauth_token.key == self.request_token.key:
+            # authorize the request token in the store
+            # for mock store, do nothing
+            return self.request_token
+        return None
 
 class RequestHandler(BaseHTTPRequestHandler):
 
@@ -48,24 +61,24 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.oauth_server = oauth.OAuthServer(MockOAuthDataStore())
         self.oauth_server.add_signature_method(oauth.OAuthSignatureMethod_PLAINTEXT())
         BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
-    
+
     # example way to send an oauth error
     def send_oauth_error(self, err=None):
         # send a 401 error
         self.send_error(401, str(err.message))
         # return the authenticate header
-        header = build_authenticate_header(realm=REALM)
-        for k, v in header:
+        header = oauth.build_authenticate_header(realm=REALM)
+        for k, v in header.iteritems():
             self.send_header(k, v) 
-    
+
     def do_GET(self):
-        
-        #print self.command, self.path, self.headers
-        
+
+        # debug info
+        print self.command, self.path, self.headers
+
+        # construct the oauth request from the request parameters
         oauth_request = oauth.OAuthRequest.from_request(self.command, self.path, self.headers)
-        
-        # handle the request based on path
-        
+
         # request token
         if self.path == REQUEST_TOKEN_URL:
             try:
@@ -76,147 +89,62 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 # return the token
                 self.wfile.write(token.to_string())
-            except:
-                self.send_oauth_error()
+            except oauth.OAuthError, err:
+                self.send_oauth_error(err)
             return
-        
-    
-    def get_consumer(self, params):
-        try:
-            consumer_key = params['oauth_consumer_key']
-        except:
-            raise OAuthError('Consumer not found')
-            
-        # NOTE should get existing consumer from store
-        
-        # verify the consumer is known to the service provider
-        if consumer_key != CONSUMER_KEY:
-            raise OAuthError('Consumer not found')
-        # get the pre-registered consumer secret
-        consumer_secret = CONSUMER_SECRET
-        
-        # NOTE should return the existing consumer representation instead of creating a new one
-        consumer = OAuthConsumer(consumer_key, consumer_secret, REQUEST_TOKEN_ENDPOINT, AUTHORIZATION_ENDPOINT, ACCESS_TOKEN_ENDPOINT)
-        return consumer
-    
-        
-        
-    '''
-    def do_GET(self):
-        
-        # get the request parameters
-        header_params = None
-        body_params = None
-        url_params = None
-        
-        try:
-            # get the OAuth parameters from the HTTP Authorization header
-            header_params = self.service_provider.parse_header_request_parameters(self.headers.getheader('authorization'))
-            print header_params
-            
-            # get the OAuth parameters from the HTTP POST request body
+
+        # user authorization
+        if self.path == AUTHORIZATION_URL:
             try:
-                content_length = int(self.headers.getheader('content-length'))
-                if content_length > 0:
-                    body_params = self.service_provider.parse_request_parameters(self.rfile.read(content_length))
-            except:
-                pass
-            
-            # get the OAuth parameters from the query string
-            url_params = self.service_provider.parse_request_parameters(urlparse.urlparse(self.path).query)
-            
-            # could specify here which method of passing OAuth parameters is expected or required
-            # for this example, we follow the order in spec section 5.2 Consumer Request Parameters
-            if header_params:
-                params = header_params
-            elif body_params:
-                params = body_params
-            elif url_params:
-                params = url_params
-            else:
-                raise OAuthError('OAuth parameters not found')
-        except OAuthError, err:
-            self.send_oauth_error(err)
-        
-        print params
-        
-        # do something based on the url path
-        endpoint = self.service_provider.get_endpoint_url(self.path)
-        print endpoint
-        
-        # Request Token Request
-        # verify that the request is valid and return a request token to the consumer
-        if endpoint == REQUEST_TOKEN_ENDPOINT: 
-            try:
-                consumer = self.get_consumer(params)
-                if self.service_provider.verify_request_token_request(consumer, params, endpoint):
-                        
-                    # issue single-use token
-                    # IN PRODUCTION, should store the token
-                    request_token = OAuthToken(self.service_provider.generate_random_string(), self.service_provider.generate_random_string())
-                    
-                    # return the OK response
-                    self.send_response(200, 'OK')
-                    self.end_headers()
-                    
-                    # return the token
-                    self.wfile.write(request_token.encode())
-                    
-            except OAuthError, err:
+                # get the request token
+                token = self.oauth_server.fetch_request_token(oauth_request)
+                callback = self.oauth_server.get_callback(oauth_request)
+                # send okay response
+                self.send_response(200, 'OK')
+                self.end_headers()
+                # return the callback url (to show server has it)
+                self.wfile.write('callback: %s' %callback)
+                # authorize the token (kind of does nothing for now)
+                token = self.oauth_server.authorize_token(token)
+                self.wfile.write('\n')
+                # return the token key
+                token_key = urllib.urlencode({'oauth_token': token.key})
+                self.wfile.write('token key: %s' % token_key)
+            except oauth.OAuthError, err:
                 self.send_oauth_error(err)
-                
-        elif endpoint == AUTHORIZATION_ENDPOINT:
+            return
+
+        # access token
+        if self.path == ACCESS_TOKEN_URL:
             try:
-                if self.service_provider.verify_authorization_request(params):
-                    
-                    # get the callback url (if one exists)
-                    try:
-                        callback = params['oauth_callback']
-                        print 'Callback url:', callback
-                        # IN PRODUCTION, store the callback url
-                    except:
-                        pass
-                    
-                    # okay to display the login, pretty boring
-                    self.send_response(200, 'OK')
-            except OAuthError, err:
+                # create an access token
+                token = self.oauth_server.fetch_access_token(oauth_request)
+                # send okay response
+                self.send_response(200, 'OK')
+                self.end_headers()
+                # return the token
+                self.wfile.write(token.to_string())
+            except oauth.OAuthError, err:
                 self.send_oauth_error(err)
-                
-        elif endpoint == ACCESS_TOKEN_ENDPOINT:
+            return
+
+        # protected resources
+        if self.path == RESOURCE_URL:
             try:
-                consumer = self.get_consumer(params)
-                if self.service_provider.verify_access_token_request(consumer, client.REQUEST_TOKEN_SECRET, params, endpoint):
-                    # issue single-use token
-                    # IN PRODUCTION, should store the token
-                    access_token = OAuthToken(self.service_provider.generate_random_string(), self.service_provider.generate_random_string(), token_type='access')
-                    
-                    # return the OK response
-                    self.send_response(200, 'OK')
-                    self.end_headers()
-                    
-                    # return the token
-                    self.wfile.write(access_token.encode())
-                    
-            except OAuthError, err:
+                # verify the request has been oauth authorized
+                consumer, token, params = self.oauth_server.verify_request(oauth_request)
+                # send okay response
+                self.send_response(200, 'OK')
+                self.end_headers()
+                # return the extra parameters - just for something to return
+                self.wfile.write(str(params))
+            except oauth.OAuthError, err:
                 self.send_oauth_error(err)
-        
-        elif endpoint == API_ENDPOINT:
-            consumer = self.get_consumer(params)
-            try:
-                if self.sp.verify_oauth_request(consumer, ACCESS_TOKEN_SECRET, params, endpoint):
-                    # okay to grant access to protected resources
-                    self.send_response(200, 'OK')
-            except OAuthError, err:
-                self.send_oauth_error(err)
-            
-        else:
-            # endpoint url not found
-            self.send_error(404)
-    '''
-    
+            return
+
     def do_POST(self):
         return self.do_GET()
-        
+
 def main():
     try:
         server = HTTPServer(('', 8080), RequestHandler)

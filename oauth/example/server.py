@@ -35,12 +35,12 @@ class MockOAuthDataStore(object):
         else:
             raise oauth.OAuthError('Nonce not found: %s' % str(nonce))
         return None
-    
+
     def fetch_request_token(self, oauth_consumer):
         if oauth_consumer.key == self.consumer.key:
             return self.request_token
         return None
-    
+
     def fetch_access_token(self, oauth_consumer, oauth_token):
         if oauth_consumer.key == self.consumer.key and oauth_token.key == self.request_token.key:
             # want to check here if token is authorized
@@ -76,12 +76,21 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         # debug info
         #print self.command, self.path, self.headers
+        
+        # get the post data (if any)
+        postdata = None
+        if self.command == 'POST':
+            try:
+                length = int(self.headers.getheader('content-length'))
+                postdata = self.rfile.read(length)
+            except:
+                pass
 
         # construct the oauth request from the request parameters
-        oauth_request = oauth.OAuthRequest.from_request(self.command, self.path, self.headers)
+        oauth_request = oauth.OAuthRequest.from_request(self.command, self.path, headers=self.headers, postdata=postdata)
 
         # request token
-        if self.path == REQUEST_TOKEN_URL:
+        if self.path.startswith(REQUEST_TOKEN_URL):
             try:
                 # create a request token
                 token = self.oauth_server.fetch_request_token(oauth_request)
@@ -95,7 +104,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             return
 
         # user authorization
-        if self.path == AUTHORIZATION_URL:
+        if self.path.startswith(AUTHORIZATION_URL):
             try:
                 # get the request token
                 token = self.oauth_server.fetch_request_token(oauth_request)
@@ -116,7 +125,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             return
 
         # access token
-        if self.path == ACCESS_TOKEN_URL:
+        if self.path.startswith(ACCESS_TOKEN_URL):
             try:
                 # create an access token
                 token = self.oauth_server.fetch_access_token(oauth_request)
@@ -130,7 +139,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             return
 
         # protected resources
-        if self.path == RESOURCE_URL:
+        if self.path.startswith(RESOURCE_URL):
             try:
                 # verify the request has been oauth authorized
                 consumer, token, params = self.oauth_server.verify_request(oauth_request)

@@ -130,11 +130,11 @@ class OAuthRequest(object):
 
     # serialize as post data for a POST request
     def to_postdata(self):
-        pass
+        return '&'.join('%s=%s' % (escape(str(k)), escape(str(v))) for k, v in self.parameters.iteritems())
 
     # serialize as a url for a GET request
     def to_url(self):
-        pass
+        return '%s?%s' % (self.get_normalized_http_url(), self.to_postdata())
 
     # return a string that consists of all the parameters that need to be signed
     def get_normalized_parameters(self):
@@ -153,7 +153,7 @@ class OAuthRequest(object):
     # just uppercases the http method
     def get_normalized_http_method(self):
         return self.http_method.upper()
-    
+
     # parses the url and rebuilds it to be scheme://host/path
     def get_normalized_http_url(self):
         parts = urlparse.urlparse(self.http_url)
@@ -172,16 +172,39 @@ class OAuthRequest(object):
         return signature_method.build_signature(self, consumer, token)
 
     @staticmethod
-    def from_request(http_method, http_url, headers, parameters=None):
-        try:
-            auth_header = headers['Authorization']
-            # check that the authorization header is OAuth
-            auth_header.index('OAuth')
-            # get the parameters from the header
-            parameters = OAuthRequest._split_header(auth_header)
+    def from_request(http_method, http_url, headers=None, postdata=None, parameters=None):
+
+        # let the library user override things however they'd like, if they know
+        # which parameters to use then go for it, for example XMLRPC might want to
+        # do this
+        if parameters is not None:
             return OAuthRequest(http_method, http_url, parameters)
-        except:
-            pass
+
+        # from the headers
+        if headers is not None:
+            try:
+                auth_header = headers['Authorization']
+                # check that the authorization header is OAuth
+                auth_header.index('OAuth')
+                # get the parameters from the header
+                parameters = OAuthRequest._split_header(auth_header)
+                return OAuthRequest(http_method, http_url, parameters)
+            except:
+                pass
+
+        # from the parameter string (post body)
+        if http_method == 'POST' and postdata is not None:
+            parameters = OAuthRequest._split_url_string(postdata)
+
+        # from the url string
+        elif http_method == 'GET':
+            param_str = urlparse.urlparse(http_url).query
+            parameters = OAuthRequest._split_url_string(param_str)
+
+        if parameters:
+            return OAuthRequest(http_method, http_url, parameters)
+
+        raise OAuthError('Missing all OAuth parameters. OAuth parameters must be in the headers, post body, or url.')
 
     @staticmethod
     def from_consumer_and_token(oauth_consumer, token=None, http_method=HTTP_METHOD, http_url=None, parameters=None):
@@ -231,6 +254,14 @@ class OAuthRequest(object):
             # remove quotes and unescape the value
             params[param_parts[0]] = urllib.unquote(param_parts[1].strip('\"'))
         return params
+    
+    # util function: turn url string into parameters, has to do some unescaping
+    @staticmethod
+    def _split_url_string(param_str):
+        parameters = cgi.parse_qs(param_str, keep_blank_values=False)
+        for k, v in parameters.iteritems():
+            parameters[k] = urllib.unquote(v[0])
+        return parameters
 
 # OAuthServer is a worker to check a requests validity against a data store
 class OAuthServer(object):

@@ -105,7 +105,7 @@ class OAuthRequest(object):
         try:
             return self.parameters[parameter]
         except:
-            raise OAuthError
+            raise OAuthError('Parameter not found: %s' % parameter)
 
     def _get_timestamp_nonce(self):
         return self.get_parameter('oauth_timestamp'), self.get_parameter('oauth_nonce')
@@ -335,8 +335,9 @@ class OAuthServer(object):
 
     # verify the correct version request for this server
     def _get_version(self, oauth_request):
-        version = oauth_request.get_parameter('oauth_version')
-        if not version:
+        try:
+            version = oauth_request.get_parameter('oauth_version')
+        except:
             version = VERSION
         if version and version != self.version:
             raise OAuthError('OAuth version %s not supported' % str(version))

@@ -10,7 +10,7 @@ RESOURCE_URL = 'http://photos.example.net/photos'
 REALM = 'http://photos.example.net/'
 
 # example store for one of each thing
-class MockOAuthDataStore(object):
+class MockOAuthDataStore(oauth.OAuthDataStore):
 
     def __init__(self):
         self.consumer = oauth.OAuthConsumer('key', 'secret')

@@ -23,7 +23,7 @@ def build_authenticate_header(realm=''):
 # url escape
 def escape(s):
     # escape '/' too
-    return urllib.quote(s, safe='')
+    return urllib.quote(s, safe='~')
 
 # util function: current timestamp
 # seconds since epoch (UTC)
@@ -148,7 +148,7 @@ class OAuthRequest(object):
         # sort alphabetically
         keys.sort()
         # combine key value pairs in string and escape
-        return escape('&'.join('%s=%s' % (str(k), params[k]) for k in keys))
+        return '&'.join('%s=%s' % (escape(str(k)), escape(str(params[k]))) for k in keys)
 
     # just uppercases the http method
     def get_normalized_http_method(self):
@@ -481,9 +481,9 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
             escape(oauth_request.get_normalized_parameters()),
         )
 
-        key = '%s&' % consumer.secret
+        key = '%s&' % escape(consumer.secret)
         if token:
-            key += token.secret
+            key += escape(token.secret)
         raw = '&'.join(sig)
 
         # hmac object

@@ -322,8 +322,8 @@ class OAuthServer(object):
         return consumer, token, parameters
 
     # authorize a request token
-    def authorize_token(self, token):
-        return self.data_store.authorize_request_token(token)
+    def authorize_token(self, token, user):
+        return self.data_store.authorize_request_token(token, user)
     
     # get the callback url
     def get_callback(self, oauth_request):
@@ -455,7 +455,7 @@ class OAuthDataStore(object):
         # -> OAuthToken
         raise NotImplementedError
 
-    def authorize_request_token(self, oauth_token):
+    def authorize_request_token(self, oauth_token, user):
         # -> OAuthToken
         raise NotImplementedError
 

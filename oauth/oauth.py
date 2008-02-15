@@ -4,7 +4,6 @@ import time
 import random
 import urlparse
 import hmac
-import hashlib
 import base64
 
 VERSION = '1.0' # Hi Blaine!
@@ -487,7 +486,12 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
         raw = '&'.join(sig)
 
         # hmac object
-        hashed = hmac.new(key, raw, hashlib.sha1)
+        try:
+            import hashlib # 2.5
+            hashed = hmac.new(key, raw, hashlib.sha1)
+        except:
+            import sha # deprecated
+            hashed = hmac.new(key, raw, sha)
 
         # calculate the digest base 64
         return base64.b64encode(hashed.digest())

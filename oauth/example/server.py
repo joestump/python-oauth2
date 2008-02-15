@@ -48,7 +48,7 @@ class MockOAuthDataStore(oauth.OAuthDataStore):
             return self.access_token
         return None
 
-    def authorize_request_token(self, oauth_token):
+    def authorize_request_token(self, oauth_token, user):
         if oauth_token.key == self.request_token.key:
             # authorize the request token in the store
             # for mock store, do nothing
@@ -115,7 +115,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 # return the callback url (to show server has it)
                 self.wfile.write('callback: %s' %callback)
                 # authorize the token (kind of does nothing for now)
-                token = self.oauth_server.authorize_token(token)
+                token = self.oauth_server.authorize_token(token, None)
                 self.wfile.write('\n')
                 # return the token key
                 token_key = urllib.urlencode({'oauth_token': token.key})

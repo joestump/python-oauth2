@@ -156,7 +156,7 @@ class OAuthRequest(object):
     # parses the url and rebuilds it to be scheme://host/path
     def get_normalized_http_url(self):
         parts = urlparse.urlparse(self.http_url)
-        url_string = '%s://%s%s' % (parts.scheme, parts.netloc, parts.path)
+        url_string = '%s://%s%s' % (parts[0], parts[1], parts[2]) # scheme, netloc, path
         return url_string
         
     # set the signature parameter to the result of build_signature

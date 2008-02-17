@@ -386,7 +386,7 @@ class OAuthServer(object):
         # attempt to construct the same signature
         built = signature_method.build_signature(oauth_request, consumer, token)
         if signature != built:
-            raise OAuthError('Invalid signature')
+            raise OAuthError('Signature does not match. Expected: %s Got: %s' % (built, signature))
 
     def _check_timestamp(self, timestamp):
         # verify that timestamp is recentish

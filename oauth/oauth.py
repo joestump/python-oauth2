@@ -386,7 +386,8 @@ class OAuthServer(object):
         # attempt to construct the same signature
         built = signature_method.build_signature(oauth_request, consumer, token)
         if signature != built:
-            raise OAuthError('Signature does not match. Expected: %s Got: %s' % (built, signature))
+            key, base = signature_method.build_signature_base_string(oauth_request, consumer, token)
+            raise OAuthError('Signature does not match. Expected: %s Got: %s Expected signature base string: %s' % (built, signature, base))
 
     def _check_timestamp(self, timestamp):
         # verify that timestamp is recentish
@@ -464,6 +465,10 @@ class OAuthSignatureMethod(object):
         # -> str
         raise NotImplementedError
 
+    def build_signature_base_string(oauth_request, oauth_consumer, oauth_token):
+        # -> str key, str raw
+        raise NotImplementedError
+
     def build_signature(oauth_request, oauth_consumer, oauth_token):
         # -> str
         raise NotImplementedError
@@ -472,8 +477,8 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
 
     def get_name(self):
         return 'HMAC-SHA1'
-
-    def build_signature(self, oauth_request, consumer, token):
+        
+    def build_signature_base_string(self, oauth_request, consumer, token):
         sig = (
             escape(oauth_request.get_normalized_http_method()),
             escape(oauth_request.get_normalized_http_url()),
@@ -484,6 +489,11 @@ class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
         if token:
             key += escape(token.secret)
         raw = '&'.join(sig)
+        return key, raw
+
+    def build_signature(self, oauth_request, consumer, token):
+        # build the base signature string
+        key, raw = self.build_signature_base_string(oauth_request, consumer, token)
 
         # hmac object
         try:
@@ -501,9 +511,12 @@ class OAuthSignatureMethod_PLAINTEXT(OAuthSignatureMethod):
     def get_name(self):
         return 'PLAINTEXT'
 
-    def build_signature(self, oauth_request, consumer, token):
+    def build_signature_base_string(self, oauth_request, consumer, token):
         # concatenate the consumer key and secret
         sig = escape(consumer.secret)
         if token:
             sig = '&'.join((sig, escape(token.secret)))
         return sig
+
+    def build_signature(self, oauth_request, consumer, token):
+        return self.build_signature_base_string(oauth_request, consumer, token)

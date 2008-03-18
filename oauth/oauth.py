@@ -189,7 +189,7 @@ class OAuthRequest(object):
                 parameters = OAuthRequest._split_header(auth_header)
                 return OAuthRequest(http_method, http_url, parameters)
             except:
-                pass
+                raise OAuthError('Unable to parse OAuth parameters from Authorization header.')
 
         # from the parameter string (post body)
         if http_method == 'POST' and postdata is not None:

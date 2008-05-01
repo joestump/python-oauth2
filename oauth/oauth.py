@@ -180,7 +180,7 @@ class OAuthRequest(object):
             return OAuthRequest(http_method, http_url, parameters)
 
         # from the headers
-        if headers is not None:
+        if headers and 'Authorization' in headers:
             try:
                 auth_header = headers['Authorization']
                 # check that the authorization header is OAuth

@@ -383,11 +383,11 @@ class OAuthServer(object):
             signature = oauth_request.get_parameter('oauth_signature')
         except:
             raise OAuthError('Missing signature')
-        # attempt to construct the same signature
+        # validate the signature
+        valid_sig = signature_method.check_signature(oauth_request, consumer, token, signature)
+        if not valid_sig:
+            raise OAuthError('Invalid signature')
         built = signature_method.build_signature(oauth_request, consumer, token)
-        if signature != built:
-            key, base = signature_method.build_signature_base_string(oauth_request, consumer, token)
-            raise OAuthError('Signature does not match. Expected: %s Got: %s Expected signature base string: %s' % (built, signature, base))
 
     def _check_timestamp(self, timestamp):
         # verify that timestamp is recentish
@@ -461,17 +461,21 @@ class OAuthDataStore(object):
 
 # OAuthSignatureMethod is a strategy class that implements a signature method
 class OAuthSignatureMethod(object):
-    def get_name():
+    def get_name(self):
         # -> str
         raise NotImplementedError
 
-    def build_signature_base_string(oauth_request, oauth_consumer, oauth_token):
+    def build_signature_base_string(self, oauth_request, oauth_consumer, oauth_token):
         # -> str key, str raw
         raise NotImplementedError
 
-    def build_signature(oauth_request, oauth_consumer, oauth_token):
+    def build_signature(self, oauth_request, oauth_consumer, oauth_token):
         # -> str
         raise NotImplementedError
+
+    def check_signature(self, oauth_request, consumer, token, signature):
+        built = self.build_signature(oauth_request, consumer, token)
+        return built == signature
 
 class OAuthSignatureMethod_HMAC_SHA1(OAuthSignatureMethod):
 

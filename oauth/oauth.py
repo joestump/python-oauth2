@@ -400,11 +400,9 @@ class OAuthServer(object):
 
     def _check_nonce(self, consumer, token, nonce):
         # verify that the nonce is uniqueish
-        try:
-            self.data_store.lookup_nonce(consumer, token, nonce)
+        nonce = self.data_store.lookup_nonce(consumer, token, nonce)
+        if nonce:
             raise OAuthError('Nonce already used: %s' % str(nonce))
-        except:
-            pass
 
 # OAuthClient is a worker to attempt to execute a request
 class OAuthClient(object):

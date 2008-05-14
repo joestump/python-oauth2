@@ -12,7 +12,7 @@ SIGNATURE_METHOD = 'PLAINTEXT'
 
 # Generic exception class
 class OAuthError(RuntimeError):
-    def __init__(self, message='OAuth error occured'):
+    def __init__(self, message='OAuth error occured.'):
         self.message = message
 
 # optional WWW-Authenticate header (401 error)
@@ -339,7 +339,7 @@ class OAuthServer(object):
         except:
             version = VERSION
         if version and version != self.version:
-            raise OAuthError('OAuth version %s not supported' % str(version))
+            raise OAuthError('OAuth version %s not supported.' % str(version))
         return version
 
     # figure out the signature with some defaults
@@ -360,10 +360,10 @@ class OAuthServer(object):
     def _get_consumer(self, oauth_request):
         consumer_key = oauth_request.get_parameter('oauth_consumer_key')
         if not consumer_key:
-            raise OAuthError('Invalid consumer key')
+            raise OAuthError('Invalid consumer key.')
         consumer = self.data_store.lookup_consumer(consumer_key)
         if not consumer:
-            raise OAuthError('Invalid consumer')
+            raise OAuthError('Invalid consumer.')
         return consumer
 
     # try to find the token for the provided request token key
@@ -382,11 +382,12 @@ class OAuthServer(object):
         try:
             signature = oauth_request.get_parameter('oauth_signature')
         except:
-            raise OAuthError('Missing signature')
+            raise OAuthError('Missing signature.')
         # validate the signature
         valid_sig = signature_method.check_signature(oauth_request, consumer, token, signature)
         if not valid_sig:
-            raise OAuthError('Invalid signature')
+            key, base = signature_method.build_signature_base_string(oauth_request, consumer, token)
+            raise OAuthError('Invalid signature. Expected signature base string: %s' % base)
         built = signature_method.build_signature(oauth_request, consumer, token)
 
     def _check_timestamp(self, timestamp):

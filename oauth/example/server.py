@@ -30,10 +30,8 @@ class MockOAuthDataStore(oauth.OAuthDataStore):
         return None
 
     def lookup_nonce(self, oauth_consumer, oauth_token, nonce):
-        if oauth_token and oauth_consumer.key == self.consumer.key and (oauth_token.key == self.request_token.key or token.key == self.access_token.key) and nonce == self.nonce:
+        if oauth_token and oauth_consumer.key == self.consumer.key and (oauth_token.key == self.request_token.key or oauth_token.key == self.access_token.key) and nonce == self.nonce:
             return self.nonce
-        else:
-            raise oauth.OAuthError('Nonce not found: %s' % str(nonce))
         return None
 
     def fetch_request_token(self, oauth_consumer):

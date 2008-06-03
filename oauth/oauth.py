@@ -171,39 +171,25 @@ class OAuthRequest(object):
         return signature_method.build_signature(self, consumer, token)
 
     @staticmethod
-    def from_request(http_method, http_url, headers=None, postdata=None, parameters=None):
-
-        # let the library user override things however they'd like, if they know
-        # which parameters to use then go for it, for example XMLRPC might want to
-        # do this
-        if parameters is not None:
-            return OAuthRequest(http_method, http_url, parameters)
+    def from_request(http_method, http_url, headers=None, parameters={}):
+        # combine parameter sources - GET/POST parameters and headers
 
         # from the headers
         if headers and 'Authorization' in headers:
-            try:
-                auth_header = headers['Authorization']
-                # check that the authorization header is OAuth
-                auth_header.index('OAuth')
-                # get the parameters from the header
-                parameters = OAuthRequest._split_header(auth_header)
-                return OAuthRequest(http_method, http_url, parameters)
-            except:
-                raise OAuthError('Unable to parse OAuth parameters from Authorization header.')
-
-        # from the parameter string (post body)
-        if http_method == 'POST' and postdata is not None:
-            parameters = OAuthRequest._split_url_string(postdata)
-
-        # from the url string
-        elif http_method == 'GET':
-            param_str = urlparse.urlparse(http_url).query
-            parameters = OAuthRequest._split_url_string(param_str)
+            auth_header = headers['Authorization']
+            # check that the authorization header is OAuth
+            if auth_header.index('OAuth') > -1:
+                try:
+                    # get the parameters from the header
+                    header_params = OAuthRequest._split_header(auth_header)
+                    parameters.update(header_params)
+                except:
+                    raise OAuthError('Unable to parse OAuth parameters from Authorization header.')
 
         if parameters:
             return OAuthRequest(http_method, http_url, parameters)
 
-        raise OAuthError('Missing all OAuth parameters. OAuth parameters must be in the headers, post body, or url.')
+        return None
 
     @staticmethod
     def from_consumer_and_token(oauth_consumer, token=None, http_method=HTTP_METHOD, http_url=None, parameters=None):

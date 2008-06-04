@@ -171,10 +171,10 @@ class OAuthRequest(object):
         return signature_method.build_signature(self, consumer, token)
 
     @staticmethod
-    def from_request(http_method, http_url, headers=None, parameters={}):
-        # combine parameter sources - GET/POST parameters and headers
+    def from_request(http_method, http_url, headers=None, parameters={}, query_string=None):
+        # combine multiple parameter sources
 
-        # from the headers
+        # headers
         if headers and 'Authorization' in headers:
             auth_header = headers['Authorization']
             # check that the authorization header is OAuth
@@ -185,6 +185,16 @@ class OAuthRequest(object):
                     parameters.update(header_params)
                 except:
                     raise OAuthError('Unable to parse OAuth parameters from Authorization header.')
+
+        # GET or POST query string
+        if query_string:
+            query_params = OAuthRequest._split_url_string(query_string)
+            parameters.update(query_params)
+
+        # URL parameters
+        param_str = urlparse.urlparse(http_url).query
+        url_params = OAuthRequest._split_url_string(param_str)
+        parameters.update(url_params)
 
         if parameters:
             return OAuthRequest(http_method, http_url, parameters)

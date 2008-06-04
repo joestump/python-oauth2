@@ -85,7 +85,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 pass
 
         # construct the oauth request from the request parameters
-        oauth_request = oauth.OAuthRequest.from_request(self.command, self.path, headers=self.headers, postdata=postdata)
+        oauth_request = oauth.OAuthRequest.from_request(self.command, self.path, headers=self.headers, query_string=postdata)
 
         # request token
         if self.path.startswith(REQUEST_TOKEN_URL):
@@ -111,7 +111,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.send_response(200, 'OK')
                 self.end_headers()
                 # return the callback url (to show server has it)
-                self.wfile.write('callback: %s' %callback)
+                self.wfile.write('callback: %s' % callback)
                 # authorize the token (kind of does nothing for now)
                 token = self.oauth_server.authorize_token(token, None)
                 self.wfile.write('\n')

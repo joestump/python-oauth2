@@ -110,7 +110,7 @@ def run_example():
     # access some protected resources
     print '* Access protected resources ...'
     pause()
-    parameters = {'file': 'vacation.jpg', 'size': 'original'} # resource specific params
+    parameters = {'file': 'vacation.jpg', 'size': 'original', 'oauth_callback': CALLBACK_URL} # resource specific params
     oauth_request = oauth.OAuthRequest.from_consumer_and_token(consumer, token=token, http_method='POST', http_url=RESOURCE_URL, parameters=parameters)
     oauth_request.sign_request(signature_method_hmac_sha1, consumer, token)
     print 'REQUEST (via post body)'

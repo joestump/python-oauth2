@@ -192,7 +192,7 @@ class OAuthRequest(object):
             parameters.update(query_params)
 
         # URL parameters
-        param_str = urlparse.urlparse(http_url).query
+        param_str = urlparse.urlparse(http_url)[4] # query
         url_params = OAuthRequest._split_url_string(param_str)
         parameters.update(url_params)
 

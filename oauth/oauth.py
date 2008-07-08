@@ -285,7 +285,7 @@ class OAuthServer(object):
         try:
             # get the request token for authorization
             token = self._get_token(oauth_request, 'request')
-        except:
+        except OAuthError:
             # no token required for the initial token request
             version = self._get_version(oauth_request)
             consumer = self._get_consumer(oauth_request)

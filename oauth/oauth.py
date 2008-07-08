@@ -124,7 +124,7 @@ class OAuthRequest(object):
         # add the oauth parameters
         if self.parameters:
             for k, v in self.parameters.iteritems():
-                auth_header += ', %s="%s"' % (k, v)
+                auth_header += ', %s="%s"' % (k, escape(str(v)))
         return {'Authorization': auth_header}
 
     # serialize as post data for a POST request
@@ -512,9 +512,9 @@ class OAuthSignatureMethod_PLAINTEXT(OAuthSignatureMethod):
 
     def build_signature_base_string(self, oauth_request, consumer, token):
         # concatenate the consumer key and secret
-        sig = escape(consumer.secret)
+        sig = escape(consumer.secret) + '&'
         if token:
-            sig = '&'.join((sig, escape(token.secret)))
+            sig = sig + escape(token.secret)
         return sig
 
     def build_signature(self, oauth_request, consumer, token):

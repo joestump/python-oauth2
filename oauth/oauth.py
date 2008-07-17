@@ -171,8 +171,10 @@ class OAuthRequest(object):
         return signature_method.build_signature(self, consumer, token)
 
     @staticmethod
-    def from_request(http_method, http_url, headers=None, parameters={}, query_string=None):
+    def from_request(http_method, http_url, headers=None, parameters=None, query_string=None):
         # combine multiple parameter sources
+        if parameters is None:
+            parameters = {}
 
         # headers
         if headers and 'Authorization' in headers:

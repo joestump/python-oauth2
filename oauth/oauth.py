@@ -124,7 +124,8 @@ class OAuthRequest(object):
         # add the oauth parameters
         if self.parameters:
             for k, v in self.parameters.iteritems():
-                auth_header += ', %s="%s"' % (k, escape(str(v)))
+                if k[:6] == 'oauth_':
+                    auth_header += ', %s="%s"' % (k, escape(str(v)))
         return {'Authorization': auth_header}
 
     # serialize as post data for a POST request

@@ -232,7 +232,7 @@ class OAuthRequest(object):
         parameters['oauth_token'] = token.key
 
         if callback:
-            parameters['oauth_callback'] = escape(callback)
+            parameters['oauth_callback'] = callback
 
         return OAuthRequest(http_method, http_url, parameters)
 

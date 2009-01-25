@@ -521,7 +521,7 @@ class OAuthSignatureMethod_PLAINTEXT(OAuthSignatureMethod):
 
     def build_signature_base_string(self, oauth_request, consumer, token):
         # concatenate the consumer key and secret
-        sig = '&%s' % escape(consumer.secret)
+        sig = '%s&' % escape(consumer.secret)
         if token:
             sig = sig + escape(token.secret)
         return sig, sig

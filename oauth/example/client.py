@@ -1,13 +1,17 @@
 '''
-Example consumer.
+Example consumer. This is not recommended for production.
+Instead, you'll want to create your own subclass of OAuthClient
+or find one that works with your web framework.
 '''
 import httplib
 import time
 import oauth.oauth as oauth
 
+# settings for the local test consumer
 SERVER = 'localhost'
 PORT = 8080
 
+# fake urls for the test server (matches ones in server.py)
 REQUEST_TOKEN_URL = 'https://photos.example.net/request_token'
 ACCESS_TOKEN_URL = 'https://photos.example.net/access_token'
 AUTHORIZATION_URL = 'https://photos.example.net/authorize'

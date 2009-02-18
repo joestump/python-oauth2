@@ -3,6 +3,7 @@ import urllib
 
 import oauth.oauth as oauth
 
+# fake urls for the test server
 REQUEST_TOKEN_URL = 'https://photos.example.net/request_token'
 ACCESS_TOKEN_URL = 'https://photos.example.net/access_token'
 AUTHORIZATION_URL = 'https://photos.example.net/authorize'

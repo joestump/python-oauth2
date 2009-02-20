@@ -24,6 +24,13 @@ def escape(s):
     # escape '/' too
     return urllib.quote(s, safe='~')
 
+# utf-8, please
+def _utf8_str(s):
+    if isinstance(s, unicode):
+        return s.encode("utf-8")
+    else:
+        return str(s)
+
 # util function: current timestamp
 # seconds since epoch (UTC)
 def generate_timestamp():
@@ -149,7 +156,7 @@ class OAuthRequest(object):
         # sort lexicographically, first after key, then after value
         key_values.sort()
         # combine key value pairs in string and escape
-        return '&'.join(['%s=%s' % (escape(str(k)), escape(str(v))) for k, v in key_values])
+        return '&'.join(['%s=%s' % (escape(_utf8_str(k)), escape(_utf8_str(v))) for k, v in key_values])
 
     # just uppercases the http method
     def get_normalized_http_method(self):

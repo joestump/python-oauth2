@@ -477,7 +477,7 @@ class OAuthDataStore(object):
         """-> OAuthToken."""
         raise NotImplementedError
 
-    def lookup_nonce(self, oauth_consumer, oauth_token, nonce, timestamp):
+    def lookup_nonce(self, oauth_consumer, oauth_token, nonce):
         """-> OAuthToken."""
         raise NotImplementedError
 

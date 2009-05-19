@@ -387,8 +387,6 @@ class OAuthServer(object):
 
     def _get_consumer(self, oauth_request):
         consumer_key = oauth_request.get_parameter('oauth_consumer_key')
-        if not consumer_key:
-            raise OAuthError('Invalid consumer key.')
         consumer = self.data_store.lookup_consumer(consumer_key)
         if not consumer:
             raise OAuthError('Invalid consumer.')

@@ -203,6 +203,7 @@ class OAuthRequest(object):
             auth_header = headers['Authorization']
             # Check that the authorization header is OAuth.
             if auth_header.index('OAuth') > -1:
+                auth_header = auth_header.lstrip('OAuth ')
                 try:
                     # Get the parameters from the header.
                     header_params = OAuthRequest._split_header(auth_header)
@@ -267,7 +268,7 @@ class OAuthRequest(object):
         parts = header.split(',')
         for param in parts:
             # Ignore realm parameter.
-            if param.find('OAuth realm') > -1:
+            if param.find('realm') > -1:
                 continue
             # Remove whitespace.
             param = param.strip()

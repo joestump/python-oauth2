@@ -200,9 +200,13 @@ class OAuthRequest(object):
     def get_normalized_http_url(self):
         """Parses the URL and rebuilds it to be scheme://host/path."""
         parts = urlparse.urlparse(self.http_url)
-        # scheme, netloc, path
-        url_string = '%s://%s%s' % (parts[0], parts[1], parts[2])
-        return url_string
+        scheme, netloc, path = parts[:3]
+        # Exclude default port numbers.
+        if scheme == 'http':
+            netloc = netloc.rstrip(':80')
+        elif scheme == 'https':
+            netloc = netloc.rstrip(':443')
+        return '%s://%s%s' % (scheme, netloc, path)
 
     def sign_request(self, signature_method, consumer, token):
         """Set the signature parameter to the result of build_signature."""

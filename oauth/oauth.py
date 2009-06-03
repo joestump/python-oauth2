@@ -185,12 +185,13 @@ class OAuthRequest(object):
             del params['oauth_signature']
         except:
             pass
-        key_values = params.items()
+        # Escape key values before sorting.
+        key_values = [(escape(_utf8_str(k)), escape(_utf8_str(v))) \
+            for k,v in params.items()]
         # Sort lexicographically, first after key, then after value.
         key_values.sort()
-        # Combine key value pairs in string and escape.
-        return '&'.join(['%s=%s' % (escape(_utf8_str(k)), escape(_utf8_str(v))) \
-            for k, v in key_values])
+        # Combine key value pairs into a string.
+        return '&'.join(['%s=%s' % (k, v) for k, v in key_values])
 
     def get_normalized_http_method(self):
         """Uppercases the http method."""

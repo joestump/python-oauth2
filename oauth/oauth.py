@@ -202,10 +202,10 @@ class OAuthRequest(object):
         parts = urlparse.urlparse(self.http_url)
         scheme, netloc, path = parts[:3]
         # Exclude default port numbers.
-        if scheme == 'http':
-            netloc = netloc.rstrip(':80')
-        elif scheme == 'https':
-            netloc = netloc.rstrip(':443')
+        if scheme == 'http' and netloc[-3:] == ':80':
+            netloc = netloc[:-3]
+        elif scheme == 'https' and netloc[-4:] == ':443':
+            netloc = netloc[:-4]
         return '%s://%s%s' % (scheme, netloc, path)
 
     def sign_request(self, signature_method, consumer, token):

@@ -231,8 +231,8 @@ class OAuthRequest(object):
         if headers and 'Authorization' in headers:
             auth_header = headers['Authorization']
             # Check that the authorization header is OAuth.
-            if auth_header.index('OAuth') > -1:
-                auth_header = auth_header.lstrip('OAuth ')
+            if auth_header[:6] == 'OAuth ':
+                auth_header = auth_header[6:]
                 try:
                     # Get the parameters from the header.
                     header_params = OAuthRequest._split_header(auth_header)

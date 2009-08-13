@@ -31,8 +31,10 @@ import oauth.oauth as oauth
 REQUEST_TOKEN_URL = 'https://photos.example.net/request_token'
 ACCESS_TOKEN_URL = 'https://photos.example.net/access_token'
 AUTHORIZATION_URL = 'https://photos.example.net/authorize'
+CALLBACK_URL = 'http://printer.example.com/request_token_ready'
 RESOURCE_URL = 'http://photos.example.net/photos'
 REALM = 'http://photos.example.net/'
+VERIFIER = 'verifier'
 
 # example store for one of each thing
 class MockOAuthDataStore(oauth.OAuthDataStore):
@@ -42,6 +44,7 @@ class MockOAuthDataStore(oauth.OAuthDataStore):
         self.request_token = oauth.OAuthToken('requestkey', 'requestsecret')
         self.access_token = oauth.OAuthToken('accesskey', 'accesssecret')
         self.nonce = 'nonce'
+        self.verifier = VERIFIER
 
     def lookup_consumer(self, key):
         if key == self.consumer.key:
@@ -51,6 +54,8 @@ class MockOAuthDataStore(oauth.OAuthDataStore):
     def lookup_token(self, token_type, token):
         token_attrib = getattr(self, '%s_token' % token_type)
         if token == token_attrib.key:
+            ## HACK
+            token_attrib.set_callback(CALLBACK_URL)
             return token_attrib
         return None
 
@@ -59,13 +64,17 @@ class MockOAuthDataStore(oauth.OAuthDataStore):
             return self.nonce
         return None
 
-    def fetch_request_token(self, oauth_consumer):
+    def fetch_request_token(self, oauth_consumer, oauth_callback):
         if oauth_consumer.key == self.consumer.key:
+            if oauth_callback:
+                # want to check here if callback is sensible
+                # for mock store, we assume it is
+                self.request_token.set_callback(oauth_callback)
             return self.request_token
         return None
 
-    def fetch_access_token(self, oauth_consumer, oauth_token):
-        if oauth_consumer.key == self.consumer.key and oauth_token.key == self.request_token.key:
+    def fetch_access_token(self, oauth_consumer, oauth_token, oauth_verifier):
+        if oauth_consumer.key == self.consumer.key and oauth_token.key == self.request_token.key and oauth_verifier == self.verifier:
             # want to check here if token is authorized
             # for mock store, we assume it is
             return self.access_token
@@ -131,18 +140,14 @@ class RequestHandler(BaseHTTPRequestHandler):
             try:
                 # get the request token
                 token = self.oauth_server.fetch_request_token(oauth_request)
-                callback = self.oauth_server.get_callback(oauth_request)
+                # authorize the token (kind of does nothing for now)
+                token = self.oauth_server.authorize_token(token, None)
+                token.set_verifier(VERIFIER)
                 # send okay response
                 self.send_response(200, 'OK')
                 self.end_headers()
                 # return the callback url (to show server has it)
-                self.wfile.write('callback: %s' % callback)
-                # authorize the token (kind of does nothing for now)
-                token = self.oauth_server.authorize_token(token, None)
-                self.wfile.write('\n')
-                # return the token key
-                token_key = urllib.urlencode({'oauth_token': token.key})
-                self.wfile.write('token key: %s' % token_key)
+                self.wfile.write(token.get_callback_url())
             except oauth.OAuthError, err:
                 self.send_oauth_error(err)
             return

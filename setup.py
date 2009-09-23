@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name="oauth",
-      version="1.0",
+      version="1.0a",
       description="Library for OAuth",
       author="Leah Culver",
       author_email="leah.culver@gmail.com",

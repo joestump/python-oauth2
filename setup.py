@@ -10,4 +10,6 @@ setup(name="oauth",
       url="http://code.google.com/p/oauth",
       packages = find_packages(),
       license = "MIT License",
-      zip_safe = True)
+      keywords="oauth",
+      zip_safe = True,
+      tests_require=['nose', 'coverage'])

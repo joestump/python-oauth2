@@ -23,63 +23,72 @@ THE SOFTWARE.
 """
 
 import unittest
+import oauth
 
-from oauth import *
-
-class TestOAuthError(unittest.TestCase):
+class TestError(unittest.TestCase):
     def test_message(self):
         try:
-            raise OAuthError
-        except OAuthError, e:
+            raise oauth.Error
+        except oauth.Error, e:
             self.assertEqual(e.message, 'OAuth error occured.')
         msg = 'OMG THINGS BROKE!!!!'
         try:
-            raise OAuthError(msg)
-        except OAuthError, e:
+            raise oauth.Error(msg)
+        except oauth.Error, e:
             self.assertEqual(e.message, msg)
 
 class TestGenerateFunctions(unittest.TestCase):
     def test_build_auth_header(self):
-        header = build_authenticate_header()
+        header = oauth.build_authenticate_header()
         self.assertEqual(header['WWW-Authenticate'], 'OAuth realm=""')
         self.assertEqual(len(header), 1)
         realm = 'http://example.myrealm.com/'
-        header = build_authenticate_header(realm)
+        header = oauth.build_authenticate_header(realm)
         self.assertEqual(header['WWW-Authenticate'], 'OAuth realm="%s"' %
                          realm)
         self.assertEqual(len(header), 1)
     
     def test_escape(self):
         string = 'http://whatever.com/~someuser/?test=test&other=other'
-        self.assert_('~' in escape(string))
+        self.assert_('~' in oauth.escape(string))
         string = '../../../../../../../etc/passwd'
-        self.assert_('../' not in escape(string))
+        self.assert_('../' not in oauth.escape(string))
 
     def test_gen_nonce(self):
-        nonce = generate_nonce()
+        nonce = oauth.generate_nonce()
         self.assertEqual(len(nonce), 8)
-        nonce = generate_nonce(20)
+        nonce = oauth.generate_nonce(20)
         self.assertEqual(len(nonce), 20)
 
     def test_gen_verifier(self):
-        verifier = generate_verifier()
+        verifier = oauth.generate_verifier()
         self.assertEqual(len(verifier), 8)
-        verifier = generate_verifier(16)
+        verifier = oauth.generate_verifier(16)
         self.assertEqual(len(verifier), 16)
 
-class TestOAuthConsumer(unittest.TestCase):
+class TestConsumer(unittest.TestCase):
     def test_init(self):
         key = 'my-key'
         secret = 'my-secret'
-        consumer = OAuthConsumer(key, secret)
+        consumer = oauth.Consumer(key, secret)
         self.assertEqual(consumer.key, key)
         self.assertEqual(consumer.secret, secret)
 
-class TestOAuthToken(unittest.TestCase):
+    def test_basic(self):
+        self.assertRaises(ValueError, lambda: oauth.Consumer(None, None))
+        self.assertRaises(ValueError, lambda: oauth.Consumer('asf', None))
+        self.assertRaises(ValueError, lambda: oauth.Consumer(None, 'dasf'))
+
+class TestToken(unittest.TestCase):
     def setUp(self):
         self.key = 'my-key'
         self.secret = 'my-secret'
-        self.token = OAuthToken(self.key, self.secret)
+        self.token = oauth.Token(self.key, self.secret)
+
+    def test_basic(self):
+        self.assertRaises(ValueError, lambda: oauth.Token(None, None))
+        self.assertRaises(ValueError, lambda: oauth.Token('asf', None))
+        self.assertRaises(ValueError, lambda: oauth.Token(None, 'dasf'))
 
     def test_init(self):
         self.assertEqual(self.token.key, self.key)
@@ -104,7 +113,7 @@ class TestOAuthToken(unittest.TestCase):
 
     def test_set_verifier(self):
         self.assertEqual(self.token.verifier, None)
-        v = generate_verifier()
+        v = oauth.generate_verifier()
         self.token.set_verifier(v)
         self.assertEqual(self.token.verifier, v)
         self.token.set_verifier()
@@ -119,7 +128,7 @@ class TestOAuthToken(unittest.TestCase):
         self.assertEqual(self.token.get_callback_url(), None)
 
         cb = 'http://www.example.com/my-callback?save=1&return=true'
-        v = generate_verifier()
+        v = oauth.generate_verifier()
         self.token.set_callback(cb)
         self.token.set_verifier(v)
         url = self.token.get_callback_url()
@@ -127,7 +136,7 @@ class TestOAuthToken(unittest.TestCase):
         self.assertEqual(url, '%s%s' % (cb, verifier_str))
 
         cb = 'http://www.example.com/my-callback-no-query'
-        v = generate_verifier()
+        v = oauth.generate_verifier()
         self.token.set_callback(cb)
         self.token.set_verifier(v)
         url = self.token.get_callback_url()
@@ -153,34 +162,49 @@ class TestOAuthToken(unittest.TestCase):
         # TODO: What about copying the verifier to the new token?
         # self.assertEqual(self.token.verifier, new.verifier)
 
+    def test_to_string(self):
+        tok = oauth.Token('tooken', 'seecret')
+        self.assertEqual(str(tok), 'oauth_token_secret=seecret&oauth_token=tooken')
+
     def test_from_string(self):
+        self.assertRaises(ValueError, lambda: oauth.Token.from_string(''))
+        self.assertRaises(ValueError, lambda: oauth.Token.from_string('blahblahblah'))
+        self.assertRaises(ValueError, lambda: oauth.Token.from_string('blah=blah'))
+
+        self.assertRaises(ValueError, lambda: oauth.Token.from_string('oauth_token_secret=asfdasf'))
+        self.assertRaises(ValueError, lambda: oauth.Token.from_string('oauth_token_secret='))
+        self.assertRaises(ValueError, lambda: oauth.Token.from_string('oauth_token=asfdasf'))
+        self.assertRaises(ValueError, lambda: oauth.Token.from_string('oauth_token='))
+        self.assertRaises(ValueError, lambda: oauth.Token.from_string('oauth_token=&oauth_token_secret='))
+        self.assertRaises(ValueError, lambda: oauth.Token.from_string('oauth_token=tooken%26oauth_token_secret=seecret'))
+
         string = self.token.to_string()
-        new = OAuthToken.from_string(string)
+        new = oauth.Token.from_string(string)
         self._compare_tokens(new)
 
         self.token.set_callback('http://www.example.com/my-callback')
         string = self.token.to_string()
-        new = OAuthToken.from_string(string)
+        new = oauth.Token.from_string(string)
         self._compare_tokens(new)
 
-class TestOAuthRequest(unittest.TestCase):
+class TestRequest(unittest.TestCase):
     pass
 
-class TestOAuthServer(unittest.TestCase):
+class TestServer(unittest.TestCase):
     pass
 
-class TestOAuthClient(unittest.TestCase):
+class TestClient(unittest.TestCase):
     pass
 
-class TestOAuthDataStore(unittest.TestCase):
+class TestDataStore(unittest.TestCase):
     pass
 
-class TestOAuthSignatureMethod(unittest.TestCase):
+class TestSignatureMethod(unittest.TestCase):
     pass
 
-class TestOAuthSignatureMethod_HMAC_SHA1(unittest.TestCase):
+class TestSignatureMethod_HMAC_SHA1(unittest.TestCase):
     pass
 
-class TestOAuthSignatureMethod_PLAINTEXT(unittest.TestCase):
+class TestSignatureMethod_PLAINTEXT(unittest.TestCase):
     pass
 

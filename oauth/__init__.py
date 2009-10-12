@@ -38,6 +38,7 @@ SIGNATURE_METHOD = 'PLAINTEXT'
 
 class Error(RuntimeError):
     """Generic exception class."""
+
     def __init__(self, message='OAuth error occured.'):
         self._message = message
 
@@ -109,6 +110,7 @@ class Consumer(object):
 
         if self.key is None or self.secret is None:
             raise ValueError("Key and secret must be set.")
+
 
 class Token(object):
     """An OAuth credential used to request authorization or a protected
@@ -197,7 +199,8 @@ class Token(object):
         try:
             secret = params['oauth_token_secret'][0]
         except Exception:
-            raise ValueError("'oauth_token_secret' not found in OAuth request.")
+            raise ValueError("'oauth_token_secret' not found in " 
+                "OAuth request.")
 
         token = Token(key, secret)
         try:
@@ -208,6 +211,7 @@ class Token(object):
 
     def __str__(self):
         return self.to_string()
+
 
 def setter(setter):
     name = setter.__name__
@@ -222,6 +226,7 @@ def setter(setter):
         del self.__dict__[name]
  
     return property(getter, setter, deleter)
+
 
 class Request(dict):
  
@@ -270,11 +275,13 @@ class Request(dict):
  
     def get_nonoauth_parameters(self):
         """Get any non-OAuth parameters."""
-        return dict([(k, v) for k, v in self.iteritems() if not k.startswith('oauth_')])
+        return dict([(k, v) for k, v in self.iteritems() 
+                    if not k.startswith('oauth_')])
  
     def to_header(self, realm=''):
         """Serialize as a header for an HTTPAuth request."""
-        oauth_params = ((k, v) for k, v in self.iteritems() if k.startswith('oauth_'))
+        oauth_params = ((k, v) for k, v in self.iteritems() 
+                            if k.startswith('oauth_'))
         stringy_params = ((k, escape(str(v))) for k, v in oauth_params)
         header_params = ('%s="%s"' % (k, v) for k, v in stringy_params)
         params_header = ', '.join(header_params)
@@ -371,7 +378,8 @@ class Request(dict):
         return OAuthRequest(http_method, http_url, parameters)
  
     @classmethod
-    def from_token_and_callback(cls, token, callback=None, http_method=HTTP_METHOD,
+    def from_token_and_callback(cls, token, callback=None, 
+        http_method=HTTP_METHOD,
             http_url=None, parameters=None):
         if not parameters:
             parameters = {}
@@ -410,7 +418,20 @@ class Request(dict):
 
 
 class Server(object):
-    """A worker to check the validity of a request against a data store."""
+    """A skeletal implementation of a service provider, providing protected
+    resources to requests from authorized consumers.
+ 
+    This class implements the logic to check requests for authorization. You
+    can use it with your web server or web framework to protect certain
+    resources with OAuth.
+ 
+    As this class has no knowledge of how your application stores data, you
+    have to give it an object it can use to load OAuth objects. Implement a
+    subclass of `oauth.interface.DataStore` for your storage system and supply
+    it to the `Server` instance as `data_store`.
+ 
+    """
+
     timestamp_threshold = 300 # In seconds, five minutes.
     version = VERSION
     signature_methods = None
@@ -463,7 +484,9 @@ class Server(object):
         # Get the request token.
         token = self._get_token(oauth_request, 'request')
         self._check_signature(oauth_request, consumer, token)
-        new_token = self.data_store.fetch_access_token(consumer, token, verifier)
+        new_token = self.data_store.fetch_access_token(consumer, 
+            token, verifier)
+
         return new_token
 
     def verify_request(self, oauth_request):
@@ -539,19 +562,25 @@ class Server(object):
         self._check_timestamp(timestamp)
         self._check_nonce(consumer, token, nonce)
         signature_method = self._get_signature_method(oauth_request)
+
         try:
             signature = oauth_request.get_parameter('oauth_signature')
         except:
             raise Error('Missing signature.')
+
         # Validate the signature.
         valid_sig = signature_method.check_signature(oauth_request, consumer,
             token, signature)
+
         if not valid_sig:
             key, base = signature_method.build_signature_base_string(
                 oauth_request, consumer, token)
+
             raise Error('Invalid signature. Expected signature base ' 
                 'string: %s' % base)
-        built = signature_method.build_signature(oauth_request, consumer, token)
+
+        built = signature_method.build_signature(oauth_request, 
+            consumer, token)
 
     def _check_timestamp(self, timestamp):
         """Verify that timestamp is recentish."""
@@ -599,7 +628,15 @@ class Client(object):
 
 
 class DataStore(object):
-    """A database abstraction used to lookup consumers and tokens."""
+    """A database abstraction used to lookup consumers and tokens.
+ 
+    To use your backend store with the `oauth` module, implement a subclass of
+    this class that performs its methods using your database or storage
+    system. Then, when using `oauth.Server`, supply it with an instance of
+    your custom `DataStore` class to have objects stored in natively in your
+    own data store.
+ 
+    """
 
     def lookup_consumer(self, key):
         """-> OAuthConsumer."""
@@ -627,12 +664,20 @@ class DataStore(object):
 
 
 class SignatureMethod(object):
-    """A strategy class that implements a signature method."""
+    """A way of signing requests.
+ 
+    The OAuth protocol lets consumers and service providers pick a way to sign
+    requests. This interface shows the methods expected by the other `oauth`
+    modules for signing requests. Subclass it and implement its methods to
+    provide a new way to sign requests.
+    """
+
     def get_name(self):
         """-> str."""
         raise NotImplementedError
 
-    def build_signature_base_string(self, oauth_request, oauth_consumer, oauth_token):
+    def build_signature_base_string(self, oauth_request, 
+        oauth_consumer, oauth_token):
         """-> str key, str raw."""
         raise NotImplementedError
 

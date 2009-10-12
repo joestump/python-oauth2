@@ -58,14 +58,6 @@ def escape(s):
     return urllib.quote(s, safe='~')
 
 
-def _utf8_str(s):
-    """Convert unicode to utf-8."""
-    if isinstance(s, unicode):
-        return s.encode("utf-8")
-    else:
-        return str(s)
-
-
 def generate_timestamp():
     """Get seconds since epoch (UTC)."""
     return int(time.time())
@@ -280,7 +272,7 @@ class Request(dict):
  
     def to_header(self, realm=''):
         """Serialize as a header for an HTTPAuth request."""
-        oauth_params = ((k, v) for k, v in self.iteritems() 
+        oauth_params = ((k, v) for k, v in self.items() 
                             if k.startswith('oauth_'))
         stringy_params = ((k, escape(str(v))) for k, v in oauth_params)
         header_params = ('%s="%s"' % (k, v) for k, v in stringy_params)
@@ -288,7 +280,7 @@ class Request(dict):
  
         auth_header = 'OAuth realm="%s"' % realm
         if params_header:
-            auth_header += params_header
+            auth_header = "%s, %s" % (auth_header, params_header)
  
         return {'Authorization': auth_header}
  
@@ -306,7 +298,7 @@ class Request(dict):
         return urllib.urlencode(sorted(items))
  
     def sign_request(self, signature_method, consumer, token):
-        """Set the signature parameter to the result of build_signature."""
+        """Set the signature parameter to the result of sign."""
         self['oauth_signature_method'] = signature_method.name
         self['oauth_signature'] = signature_method.sign(self, consumer, token)
  
@@ -338,7 +330,7 @@ class Request(dict):
                     header_params = cls._split_header(auth_header)
                     parameters.update(header_params)
                 except:
-                    raise OAuthError('Unable to parse OAuth parameters from '
+                    raise Error('Unable to parse OAuth parameters from '
                         'Authorization header.')
  
         # GET or POST query string.
@@ -375,12 +367,12 @@ class Request(dict):
         if token:
             parameters['oauth_token'] = token.key
  
-        return OAuthRequest(http_method, http_url, parameters)
+        return Request(http_method, http_url, parameters)
  
     @classmethod
     def from_token_and_callback(cls, token, callback=None, 
-        http_method=HTTP_METHOD,
-            http_url=None, parameters=None):
+        http_method=HTTP_METHOD, http_url=None, parameters=None):
+
         if not parameters:
             parameters = {}
  
@@ -448,7 +440,7 @@ class Server(object):
         return self.data_store
 
     def add_signature_method(self, signature_method):
-        self.signature_methods[signature_method.get_name()] = signature_method
+        self.signature_methods[signature_method.name] = signature_method
         return self.signature_methods
 
     def fetch_request_token(self, oauth_request):
@@ -573,13 +565,13 @@ class Server(object):
             token, signature)
 
         if not valid_sig:
-            key, base = signature_method.build_signature_base_string(
+            key, base = signature_method.signing_base(
                 oauth_request, consumer, token)
 
             raise Error('Invalid signature. Expected signature base ' 
                 'string: %s' % base)
 
-        built = signature_method.build_signature(oauth_request, 
+        built = signature_method.sign(oauth_request, 
             consumer, token)
 
     def _check_timestamp(self, timestamp):
@@ -672,34 +664,45 @@ class SignatureMethod(object):
     provide a new way to sign requests.
     """
 
-    def get_name(self):
-        """-> str."""
+    def signing_base(self, request, consumer, token):
+        """Calculates the string that needs to be signed.
+
+        This method returns a 2-tuple containing the starting key for the
+        signing and the message to be signed. The latter may be used in error
+        messages to help clients debug their software.
+
+        """
         raise NotImplementedError
 
-    def build_signature_base_string(self, oauth_request, 
-        oauth_consumer, oauth_token):
-        """-> str key, str raw."""
+    def sign(self, request, consumer, token):
+        """Returns the signature for the given request, based on the consumer
+        and token also provided.
+
+        You should use your implementation of `signing_base()` to build the
+        message to sign. Otherwise it may be less useful for debugging.
+
+        """
         raise NotImplementedError
 
-    def build_signature(self, oauth_request, oauth_consumer, oauth_token):
-        """-> str."""
-        raise NotImplementedError
-
-    def check_signature(self, oauth_request, consumer, token, signature):
-        built = self.build_signature(oauth_request, consumer, token)
+    def check(self, request, consumer, token, signature):
+        """Returns whether the given signature is the correct signature for
+        the given consumer and token signing the given request."""
+        built = self.sign(request, consumer, token)
         return built == signature
 
+    build_signature_base_string = signing_base
+    build_signature = sign
+    check_signature = check
+    
 
 class SignatureMethod_HMAC_SHA1(SignatureMethod):
-
-    def get_name(self):
-        return 'HMAC-SHA1'
+    name = 'HMAC-SHA1'
         
-    def build_signature_base_string(self, oauth_request, consumer, token):
+    def signing_base(self, request, consumer, token):
         sig = (
-            escape(oauth_request.get_normalized_http_method()),
-            escape(oauth_request.get_normalized_http_url()),
-            escape(oauth_request.get_normalized_parameters()),
+            escape(request.method),
+            escape(request.url),
+            escape(request.get_normalized_parameters()),
         )
 
         key = '%s&' % escape(consumer.secret)
@@ -708,10 +711,9 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
         raw = '&'.join(sig)
         return key, raw
 
-    def build_signature(self, oauth_request, consumer, token):
+    def sign(self, request, consumer, token):
         """Builds the base signature string."""
-        key, raw = self.build_signature_base_string(oauth_request, consumer,
-            token)
+        key, raw = self.signing_base(request, consumer, token)
 
         # HMAC object.
         try:
@@ -724,23 +726,21 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
         # Calculate the digest base 64.
         return binascii.b2a_base64(hashed.digest())[:-1]
 
-
 class SignatureMethod_PLAINTEXT(SignatureMethod):
 
-    def get_name(self):
-        return 'PLAINTEXT'
+    name = 'PLAINTEXT'
 
-    def build_signature_base_string(self, oauth_request, consumer, token):
-        """Concatenates the consumer key and secret."""
+    def signing_base(self, request, consumer, token):
+        """Concatenates the consumer key and secret with the token's
+        secret."""
         sig = '%s&' % escape(consumer.secret)
         if token:
             sig = sig + escape(token.secret)
         return sig, sig
 
-    def build_signature(self, oauth_request, consumer, token):
-        key, raw = self.build_signature_base_string(oauth_request, consumer,
-            token)
-        return key
+    def sign(self, request, consumer, token):
+        key, raw = self.signing_base(request, consumer, token)
+        return raw
 
 # Backwards compatibility
 OAuthError = Error

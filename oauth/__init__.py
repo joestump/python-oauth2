@@ -421,7 +421,6 @@ class Server(object):
     have to give it an object it can use to load OAuth objects. Implement a
     subclass of `oauth.interface.DataStore` for your storage system and supply
     it to the `Server` instance as `data_store`.
- 
     """
 
     timestamp_threshold = 300 # In seconds, five minutes.

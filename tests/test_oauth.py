@@ -355,24 +355,24 @@ class TestRequest(unittest.TestCase):
         params = {
             'oauth_version': "1.0",
             'oauth_nonce': "4572616e48616d6d65724c61686176",
-            'oauth_timestamp': "137131200",
-            'oauth_consumer_key': "0685bd9184jfhq22",
-            'oauth_signature_method': "HMAC-SHA1",
-            'oauth_token': "ad180jjd733klru7",
-            'oauth_signature': "wOJIO9A2W5mFwDgiDvZbTSMK%2FPY%3D",
+            'oauth_timestamp': "137131200"
         }
 
-        req = oauth.Request("GET", url, params)
         tok = oauth.Token(key="tok-test-key", secret="tok-test-secret")
         con = oauth.Consumer(key="con-test-key", secret="con-test-secret")
 
+        params['oauth_token'] = tok.key
+        params['oauth_consumer_key'] = con.key
+        req = oauth.Request(method="GET", url=url, parameters=params)
+
         methods = {
-            'broken': oauth.SignatureMethod_HMAC_SHA1(), 
-            'another': oauth.SignatureMethod_PLAINTEXT()
+            'TQ6vGQ5A6IZn8dmeGB4+/Jl3EMI=': oauth.SignatureMethod_HMAC_SHA1(), 
+            'con-test-secret&tok-test-secret': oauth.SignatureMethod_PLAINTEXT()
         }
 
         for exp, method in methods.items():
             req.sign_request(method, con, tok)
+            print req.copy()
             self.assertEquals(req['oauth_signature_method'], method.name)
             self.assertEquals(req['oauth_signature'], exp)
 
@@ -421,7 +421,7 @@ class TestRequest(unittest.TestCase):
         req = oauth.Request.from_request("GET", url)
         self.assertEquals(None, req)
 
-    def test_from_consumer_and_token(self):
+    def test_from_token_and_callback(self):
         url = "http://sp.example.com/"
 
         params = {
@@ -433,24 +433,68 @@ class TestRequest(unittest.TestCase):
             'oauth_token': "ad180jjd733klru7",
             'oauth_signature': "wOJIO9A2W5mFwDgiDvZbTSMK%2FPY%3D",
         }
-
-        tok = oauth.Token(key="tok-test-key", secret="tok-test-secret")
-        con = oauth.Consumer(key="con-test-key", secret="con-test-secret")
         
-        req = oauth.Request.from_consumer_and_token(con)
-        self.assertTrue(len(req.copy()) == 4)
-
-        req = oauth.Request.from_consumer_and_token(con, token=tok, 
-            http_method="GET", http_url=url)
-
-        self.assertTrue('oauth_timestamp' in req)
-        self.assertTrue('oauth_nonce' in req)
-        self.assertEquals(req['oauth_version'], '1.0') 
-        self.assertEquals(req['oauth_consumer_key'], con.key)
+        tok = oauth.Token(key="tok-test-key", secret="tok-test-secret")
+        req = oauth.Request.from_token_and_callback(tok)
+        self.assertFalse('oauth_callback' in req)
         self.assertEquals(req['oauth_token'], tok.key)
 
+        req = oauth.Request.from_token_and_callback(tok, callback=url)
+        self.assertTrue('oauth_callback' in req)
+        self.assertEquals(req['oauth_callback'], url)
+
+class MyDataStore(oauth.DataStore):
+    def lookup_consumer(self, key):
+        if key == "test-consumer-key":
+            return oauth.Consumer(key="test-consumer-key", 
+                secret="test-consumer-secret")
+
+        return None
+
+    def lookup_token(self, consumer, type, token):
+        if type == "request":
+            return oauth.Token(key="test-request-token-key", 
+                secret="test-request-token-secret")
+        elif type == "access":
+            return oauth.Token(key="test-access-token-key", 
+                secret="test-access-token-secret")
+
+        return None
+
+BadDataStore = oauth.DataStore
+
 class TestServer(unittest.TestCase):
-    pass
+    def test_init(self):
+        server = oauth.Server(data_store=MyDataStore(), 
+            signature_methods={'HMAC-SHA1' : oauth.SignatureMethod_HMAC_SHA1()})
+        self.assertTrue(isinstance(server.data_store, MyDataStore))
+        self.assertTrue('HMAC-SHA1' in server.signature_methods)
+        self.assertTrue(isinstance(server.signature_methods['HMAC-SHA1'], 
+            oauth.SignatureMethod_HMAC_SHA1))
+
+        server = oauth.Server()
+        self.assertEquals(server.data_store, None)
+        self.assertEquals(server.signature_methods, {})
+
+    def test_add_signature_method(self):
+        server = oauth.Server()
+        res = server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
+        self.assertTrue(len(res) == 1) 
+        self.assertTrue('HMAC-SHA1' in res)
+        self.assertTrue(isinstance(res['HMAC-SHA1'], 
+            oauth.SignatureMethod_HMAC_SHA1))
+
+        res = server.add_signature_method(oauth.SignatureMethod_PLAINTEXT())
+        self.assertTrue(len(res) == 2) 
+        self.assertTrue('PLAINTEXT' in res)
+        self.assertTrue(isinstance(res['PLAINTEXT'], 
+            oauth.SignatureMethod_PLAINTEXT))
+
+    def test_fetch_request_token(self):
+        pass
+
+    def test_bad_token_fetch_request_token(self):
+        pass
 
 class TestClient(unittest.TestCase):
     pass

@@ -22,13 +22,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-import cgi
 import urllib
 import time
 import random
 import urlparse
 import hmac
 import binascii
+import httplib2
 
 
 VERSION = '1.0' # Hi Blaine!
@@ -108,6 +108,14 @@ class Consumer(object):
         if self.key is None or self.secret is None:
             raise ValueError("Key and secret must be set.")
 
+    def __str__(self):
+        data = {
+            'oauth_consumer_key': self.key,
+            'oauth_consumer_secret': self.secret
+        }
+
+        return urllib.urlencode(data)
+
 
 class Token(object):
     """An OAuth credential used to request authorization or a protected
@@ -184,7 +192,7 @@ class Token(object):
         if not len(s):
             raise ValueError("Invalid parameter string.")
 
-        params = cgi.parse_qs(s, keep_blank_values=False)
+        params = urlparse.parse_qs(s, keep_blank_values=False)
         if not len(params):
             raise ValueError("Invalid parameter string.")
 
@@ -255,11 +263,16 @@ class Request(dict):
     def url(self, value):
         parts = urlparse.urlparse(value)
         scheme, netloc, path = parts[:3]
+
         # Exclude default port numbers.
         if scheme == 'http' and netloc[-3:] == ':80':
             netloc = netloc[:-3]
         elif scheme == 'https' and netloc[-4:] == ':443':
             netloc = netloc[:-4]
+
+        if scheme != 'http' and scheme != 'https':
+            raise ValueError("Unsupported URL %s (%s)." % (value, scheme))
+
         value = '%s://%s%s' % (scheme, netloc, path)
         self.__dict__['url'] = value
  
@@ -311,6 +324,13 @@ class Request(dict):
  
     def sign_request(self, signature_method, consumer, token):
         """Set the signature parameter to the result of sign."""
+
+        if 'oauth_consumer_key' not in self:
+            self['oauth_consumer_key'] = consumer.key
+
+        if token and 'oauth_token' not in self:
+            self['oauth_token'] = token.key
+
         self['oauth_signature_method'] = signature_method.name
         self['oauth_signature'] = signature_method.sign(self, consumer, token)
  
@@ -415,7 +435,7 @@ class Request(dict):
     @staticmethod
     def _split_url_string(param_str):
         """Turn URL string into parameters."""
-        parameters = cgi.parse_qs(param_str, keep_blank_values=False)
+        parameters = urlparse.parse_qs(param_str, keep_blank_values=False)
         for k, v in parameters.iteritems():
             parameters[k] = urllib.unquote(v[0])
         return parameters
@@ -515,32 +535,60 @@ class Server(object):
                 'greater difference than threshold %d' % (timestamp, now, self.timestamp_threshold))
 
 
-class Client(object):
+class Client(httplib2.Http):
     """OAuthClient is a worker to attempt to execute a request."""
-    consumer = None
-    token = None
 
-    def __init__(self, oauth_consumer, oauth_token):
-        self.consumer = oauth_consumer
-        self.token = oauth_token
+    def __init__(self, consumer, token=None, cache=None, timeout=None,
+        proxy_info=None):
 
-    def get_consumer(self):
-        return self.consumer
+        if consumer is not None and not isinstance(consumer, Consumer):
+            raise ValueError("Invalid consumer.")
 
-    def get_token(self):
-        return self.token
+        if token is not None and not isinstance(token, Token):
+            raise ValueError("Invalid token.")
 
-    def fetch_request_token(self, request):
-        """-> OAuthToken."""
-        raise NotImplementedError
+        self.consumer = consumer
+        self.token = token
+        self.method = SignatureMethod_HMAC_SHA1()
 
-    def fetch_access_token(self, request):
-        """-> OAuthToken."""
-        raise NotImplementedError
+        httplib2.Http.__init__(self, cache=cache, timeout=timeout, 
+            proxy_info=proxy_info)
 
-    def access_resource(self, request):
-        """-> Some protected resource."""
-        raise NotImplementedError
+    def set_signature_method(method):
+        if not isinstance(method, SignatureMethod):
+            raise ValueError("Invalid signature method.")
+
+        self.method = method
+
+    def request(self, uri, method="GET", body=None, headers=None, 
+        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
+        
+        if body and method == "POST":
+            parameters = urlparse.parse_qs(body)
+        elif method == "GET":
+            parsed = urlparse.urlparse(uri)
+            parameters = urlparse.parse_qs(parsed.query)     
+        else:
+            parameters = None
+
+        req = Request.from_consumer_and_token(self.consumer, token=self.token,
+            http_method=method, http_url=uri, parameters=parameters)
+
+        req.sign_request(self.method, self.consumer, self.token)
+
+        if method == "POST":
+            body = req.to_postdata() 
+        elif method == "GET":
+            uri = req.to_url()
+        else:
+            if headers is None:
+                headers = {}
+
+            headers.update(req.to_header())
+
+        return httplib2.Http.request(self, uri, method=method, body=body, 
+            headers=headers, redirections=redirections, 
+            connection_type=connection_type)
 
 
 class SignatureMethod(object):
@@ -626,13 +674,3 @@ class SignatureMethod_PLAINTEXT(SignatureMethod):
         key, raw = self.signing_base(request, consumer, token)
         return raw
 
-# Backwards compatibility
-OAuthError = Error
-OAuthToken = Token
-OAuthConsumer = Consumer
-OAuthRequest = Request
-OAuthServer = Server
-OAuthClient = Client
-OAuthSignatureMethod = SignatureMethod
-OAuthSignatureMethod_HMAC_SHA1 = SignatureMethod_HMAC_SHA1 
-OAuthSignatureMethod_PLAINTEXT = SignatureMethod_PLAINTEXT

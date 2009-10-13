@@ -644,6 +644,55 @@ class TestServer(unittest.TestCase):
             request, consumer, token)
 
 
+# Request Token: http://oauth-sandbox.sevengoslings.net/request_token 
+# Auth: http://oauth-sandbox.sevengoslings.net/authorize 
+# Access Token: http://oauth-sandbox.sevengoslings.net/access_token 
+# Two-legged: http://oauth-sandbox.sevengoslings.net/two_legged 
+# Three-legged: http://oauth-sandbox.sevengoslings.net/three_legged 
+# Key: bd37aed57e15df53
+# Secret: 0e9e6413a9ef49510a4f68ed02cd
 class TestClient(unittest.TestCase):
-    pass
+#    oauth_uris = {
+#        'request_token': '/request_token.php',
+#        'access_token': '/access_token.php'
+#    }
+
+    oauth_uris = {
+        'request_token': '/request_token',
+        'authorize': '/authorize',
+        'access_token': '/access_token',
+        'two_legged': '/two_legged',
+        'three_legged': '/three_legged'
+    }
+        
+    consumer_key = 'bd37aed57e15df53'
+    consumer_secret = '0e9e6413a9ef49510a4f68ed02cd'
+    host = 'http://oauth-sandbox.sevengoslings.net'
+
+#    host = "http://term.ie/oauth/example"
+#    consumer_key = 'key'
+#    consumer_secret = 'secret'
+
+    def setUp(self):
+        self.consumer = oauth.Consumer(key=self.consumer_key, 
+            secret=self.consumer_secret)
+
+    def _uri(self, type):
+        uri = self.oauth_uris.get(type)
+        if uri is None:
+            raise KeyError("%s is not a valid OAuth URI type." % type)
+
+        return "%s%s" % (self.host, uri)
+    
+    def test_get_access_token(self):
+        client = oauth.Client(self.consumer, None)
+        resp, content = client.request(self._uri('request_token'), "GET")
+
+        self.assertEquals(int(resp['status']), 200)
+
+    def test_get_access_token(self):
+        client = oauth.Client(self.consumer, None)
+        resp, content = client.request(self._uri('request_token'), "POST")
+
+        self.assertEquals(int(resp['status']), 200)
 

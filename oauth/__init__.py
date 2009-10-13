@@ -361,13 +361,13 @@ class Request(dict):
         return None
  
     @classmethod
-    def from_consumer_and_token(cls, oauth_consumer, token=None,
+    def from_consumer_and_token(cls, consumer, token=None,
             http_method=HTTP_METHOD, http_url=None, parameters=None):
         if not parameters:
             parameters = {}
  
         defaults = {
-            'oauth_consumer_key': oauth_consumer.key,
+            'oauth_consumer_key': consumer.key,
             'oauth_timestamp': cls.make_timestamp(),
             'oauth_nonce': cls.make_nonce(),
             'oauth_version': cls.version,

@@ -47,6 +47,11 @@ class Error(RuntimeError):
         """A hack to get around the deprecation errors in 2.6."""
         return self._message
 
+    def __str__(self):
+        return self._message
+
+class MissingSignature(Error):
+    pass
 
 def build_authenticate_header(realm=''):
     """Optional WWW-Authenticate header (401 error)"""
@@ -296,6 +301,8 @@ class Request(dict):
         ret = self.get(parameter)
         if ret is None:
             raise Error('Parameter not found: %s' % parameter)
+
+        return ret
  
     def get_normalized_parameters(self):
         """Return a string that contains the parameters that must be signed."""
@@ -437,13 +444,10 @@ class Server(object):
     def verify_request(self, request, consumer, token):
         """Verifies an api call and checks all the parameters."""
 
-        version = self._get_version(oauth_request)
-        consumer = self._get_consumer(oauth_request)
-        # Get the access token.
-        token = self._get_token(oauth_request, 'access')
-        self._check_signature(oauth_request, consumer, token)
-        parameters = oauth_request.get_nonoauth_parameters()
-        return consumer, token, parameters
+        version = self._get_version(request)
+        self._check_signature(request, consumer, token)
+        parameters = request.get_nonoauth_parameters()
+        return parameters
 
     def build_authenticate_header(self, realm=''):
         """Optional support for the authenticate header."""
@@ -467,13 +471,13 @@ class Server(object):
             signature_method = request.get_parameter('oauth_signature_method')
         except:
             signature_method = SIGNATURE_METHOD
+
         try:
             # Get the signature method object.
             signature_method = self.signature_methods[signature_method]
         except:
             signature_method_names = ', '.join(self.signature_methods.keys())
-            raise Error('Signature method %s not supported try one of the ' 
-                'following: %s' % (signature_method, signature_method_names))
+            raise Error('Signature method %s not supported try one of the following: %s' % (signature_method, signature_method_names))
 
         return signature_method
 
@@ -488,7 +492,7 @@ class Server(object):
         try:
             signature = request.get_parameter('oauth_signature')
         except:
-            raise Error('Missing signature.')
+            raise MissingSignature('Missing oauth_signature.')
 
         # Validate the signature.
         valid = signature_method.check(request, consumer, token, signature)
@@ -508,8 +512,7 @@ class Server(object):
         lapsed = now - timestamp
         if lapsed > self.timestamp_threshold:
             raise Error('Expired timestamp: given %d and now %s has a '
-                'greater difference than threshold %d' %
-                (timestamp, now, self.timestamp_threshold))
+                'greater difference than threshold %d' % (timestamp, now, self.timestamp_threshold))
 
 
 class Client(object):
@@ -527,15 +530,15 @@ class Client(object):
     def get_token(self):
         return self.token
 
-    def fetch_request_token(self, oauth_request):
+    def fetch_request_token(self, request):
         """-> OAuthToken."""
         raise NotImplementedError
 
-    def fetch_access_token(self, oauth_request):
+    def fetch_access_token(self, request):
         """-> OAuthToken."""
         raise NotImplementedError
 
-    def access_resource(self, oauth_request):
+    def access_resource(self, request):
         """-> Some protected resource."""
         raise NotImplementedError
 
@@ -575,10 +578,6 @@ class SignatureMethod(object):
         built = self.sign(request, consumer, token)
         return built == signature
 
-    build_signature_base_string = signing_base
-    build_signature = sign
-    check_signature = check
-    
 
 class SignatureMethod_HMAC_SHA1(SignatureMethod):
     name = 'HMAC-SHA1'

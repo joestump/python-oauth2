@@ -237,6 +237,15 @@ class TestRequest(unittest.TestCase):
         req = oauth.Request(method, url2)
         self.assertEquals(req.url, exp2)
 
+    def test_get_parameter(self):
+        url = "http://example.com"
+        method = "GET"
+        params = {'oauth_consumer' : 'asdf'}
+        req = oauth.Request(method, url, parameters=params)
+
+        self.assertEquals(req.get_parameter('oauth_consumer'), 'asdf')
+        self.assertRaises(oauth.Error, req.get_parameter, 'blah')
+
     def test_get_nonoauth_parameters(self):
 
         oauth_params = {
@@ -443,7 +452,50 @@ class TestRequest(unittest.TestCase):
         self.assertTrue('oauth_callback' in req)
         self.assertEquals(req['oauth_callback'], url)
 
+    def test_from_consumer_and_token(self):
+        url = "http://sp.example.com/"
+
+        tok = oauth.Token(key="tok-test-key", secret="tok-test-secret")
+        con = oauth.Consumer(key="con-test-key", secret="con-test-secret")
+        req = oauth.Request.from_consumer_and_token(con, token=tok, 
+            http_method="GET", http_url=url)
+
+        self.assertEquals(req['oauth_token'], tok.key)
+        self.assertEquals(req['oauth_consumer_key'], con.key)
+
+class SignatureMethod_Bad(oauth.SignatureMethod):
+    name = "BAD"
+
+    def signing_base(self, request, consumer, token):
+        return ""
+
+    def sign(self, request, consumer, token):
+        return "invalid-signature"
+
+
 class TestServer(unittest.TestCase):
+    def setUp(self):
+        url = "http://sp.example.com/"
+
+        params = {
+            'oauth_version': "1.0",
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': int(time.time()),
+            'bar': 'blerg',
+            'foo': 59
+        }
+
+        self.consumer = oauth.Consumer(key="consumer-key", 
+            secret="consumer-secret")
+        self.token = oauth.Token(key="token-key", secret="token-secret")
+
+        params['oauth_token'] = self.token.key
+        params['oauth_consumer_key'] = self.consumer.key
+        self.request = oauth.Request(method="GET", url=url, parameters=params)
+
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        self.request.sign_request(signature_method, self.consumer, self.token)
+
     def test_init(self):
         server = oauth.Server(signature_methods={'HMAC-SHA1' : oauth.SignatureMethod_HMAC_SHA1()})
         self.assertTrue('HMAC-SHA1' in server.signature_methods)
@@ -452,24 +504,6 @@ class TestServer(unittest.TestCase):
 
         server = oauth.Server()
         self.assertEquals(server.signature_methods, {})
-
-    def _req(self):
-        ds = MyDataStore()
-
-        url = "http://sp.example.com/"
-
-        params = {
-            'oauth_version': "1.0",
-            'oauth_nonce': "4572616e48616d6d65724c61686176",
-            'oauth_timestamp': "137131200"
-        }
-
-        con = ds.lookup_consumer("test-consumer-key")
-        tok = ds.lookup_token(con, "request", "test-request-token-key")
-
-        params['oauth_token'] = tok.key
-        params['oauth_consumer_key'] = con.key
-        return oauth.Request(method="GET", url=url, parameters=params)
 
     def test_add_signature_method(self):
         server = oauth.Server()
@@ -485,27 +519,131 @@ class TestServer(unittest.TestCase):
         self.assertTrue(isinstance(res['PLAINTEXT'], 
             oauth.SignatureMethod_PLAINTEXT))
 
-    def test_fetch_request_token(self):
-        pass
+    def test_verify_request(self):
+        server = oauth.Server()
+        server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
 
-#        server = oauth.Server(data_store=MyDataStore())
-#        token = server.fetch_request_token(self._req())
+        parameters = server.verify_request(self.request, self.consumer,
+            self.token)
 
-    def test_bad_token_fetch_request_token(self):
-        pass
+        self.assertTrue('bar' in parameters)
+        self.assertTrue('foo' in parameters)
+        self.assertEquals(parameters['bar'], 'blerg')
+        self.assertEquals(parameters['foo'], 59)
+
+    def test_no_version(self):
+        url = "http://sp.example.com/"
+
+        params = {
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': int(time.time()),
+            'bar': 'blerg',
+            'foo': 59
+        }
+
+        self.consumer = oauth.Consumer(key="consumer-key", 
+            secret="consumer-secret")
+        self.token = oauth.Token(key="token-key", secret="token-secret")
+
+        params['oauth_token'] = self.token.key
+        params['oauth_consumer_key'] = self.consumer.key
+        self.request = oauth.Request(method="GET", url=url, parameters=params)
+
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        self.request.sign_request(signature_method, self.consumer, self.token)
+
+        server = oauth.Server()
+        server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
+
+        parameters = server.verify_request(self.request, self.consumer,
+            self.token)
+
+    def test_invalid_version(self):
+        url = "http://sp.example.com/"
+
+        params = {
+            'oauth_version': '222.9922',
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': int(time.time()),
+            'bar': 'blerg',
+            'foo': 59
+        }
+
+        consumer = oauth.Consumer(key="consumer-key", 
+            secret="consumer-secret")
+        token = oauth.Token(key="token-key", secret="token-secret")
+
+        params['oauth_token'] = token.key
+        params['oauth_consumer_key'] = consumer.key
+        request = oauth.Request(method="GET", url=url, parameters=params)
+
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        request.sign_request(signature_method, consumer, token)
+
+        server = oauth.Server()
+        server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
+
+        self.assertRaises(oauth.Error, server.verify_request, request, 
+            consumer, token)
+
+    def test_invalid_signature_method(self):
+        url = "http://sp.example.com/"
+
+        params = {
+            'oauth_version': '1.0',
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': int(time.time()),
+            'bar': 'blerg',
+            'foo': 59
+        }
+
+        consumer = oauth.Consumer(key="consumer-key", 
+            secret="consumer-secret")
+        token = oauth.Token(key="token-key", secret="token-secret")
+
+        params['oauth_token'] = token.key
+        params['oauth_consumer_key'] = consumer.key
+        request = oauth.Request(method="GET", url=url, parameters=params)
+
+        signature_method = SignatureMethod_Bad()
+        request.sign_request(signature_method, consumer, token)
+
+        server = oauth.Server()
+        server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
+
+        self.assertRaises(oauth.Error, server.verify_request, request, 
+            consumer, token)
+
+    def test_missing_signature(self):
+        url = "http://sp.example.com/"
+
+        params = {
+            'oauth_version': '1.0',
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': int(time.time()),
+            'bar': 'blerg',
+            'foo': 59
+        }
+
+        consumer = oauth.Consumer(key="consumer-key", 
+            secret="consumer-secret")
+        token = oauth.Token(key="token-key", secret="token-secret")
+
+        params['oauth_token'] = token.key
+        params['oauth_consumer_key'] = consumer.key
+        request = oauth.Request(method="GET", url=url, parameters=params)
+
+        signature_method = oauth.SignatureMethod_HMAC_SHA1()
+        request.sign_request(signature_method, consumer, token)
+        del request['oauth_signature']
+
+        server = oauth.Server()
+        server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
+
+        self.assertRaises(oauth.MissingSignature, server.verify_request, 
+            request, consumer, token)
+
 
 class TestClient(unittest.TestCase):
-    pass
-
-class TestDataStore(unittest.TestCase):
-    pass
-
-class TestSignatureMethod(unittest.TestCase):
-    pass
-
-class TestSignatureMethod_HMAC_SHA1(unittest.TestCase):
-    pass
-
-class TestSignatureMethod_PLAINTEXT(unittest.TestCase):
     pass
 

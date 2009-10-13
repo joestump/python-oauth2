@@ -443,38 +443,33 @@ class TestRequest(unittest.TestCase):
         self.assertTrue('oauth_callback' in req)
         self.assertEquals(req['oauth_callback'], url)
 
-class MyDataStore(oauth.DataStore):
-    def lookup_consumer(self, key):
-        if key == "test-consumer-key":
-            return oauth.Consumer(key="test-consumer-key", 
-                secret="test-consumer-secret")
-
-        return None
-
-    def lookup_token(self, consumer, type, token):
-        if type == "request":
-            return oauth.Token(key="test-request-token-key", 
-                secret="test-request-token-secret")
-        elif type == "access":
-            return oauth.Token(key="test-access-token-key", 
-                secret="test-access-token-secret")
-
-        return None
-
-BadDataStore = oauth.DataStore
-
 class TestServer(unittest.TestCase):
     def test_init(self):
-        server = oauth.Server(data_store=MyDataStore(), 
-            signature_methods={'HMAC-SHA1' : oauth.SignatureMethod_HMAC_SHA1()})
-        self.assertTrue(isinstance(server.data_store, MyDataStore))
+        server = oauth.Server(signature_methods={'HMAC-SHA1' : oauth.SignatureMethod_HMAC_SHA1()})
         self.assertTrue('HMAC-SHA1' in server.signature_methods)
         self.assertTrue(isinstance(server.signature_methods['HMAC-SHA1'], 
             oauth.SignatureMethod_HMAC_SHA1))
 
         server = oauth.Server()
-        self.assertEquals(server.data_store, None)
         self.assertEquals(server.signature_methods, {})
+
+    def _req(self):
+        ds = MyDataStore()
+
+        url = "http://sp.example.com/"
+
+        params = {
+            'oauth_version': "1.0",
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': "137131200"
+        }
+
+        con = ds.lookup_consumer("test-consumer-key")
+        tok = ds.lookup_token(con, "request", "test-request-token-key")
+
+        params['oauth_token'] = tok.key
+        params['oauth_consumer_key'] = con.key
+        return oauth.Request(method="GET", url=url, parameters=params)
 
     def test_add_signature_method(self):
         server = oauth.Server()
@@ -492,6 +487,9 @@ class TestServer(unittest.TestCase):
 
     def test_fetch_request_token(self):
         pass
+
+#        server = oauth.Server(data_store=MyDataStore())
+#        token = server.fetch_request_token(self._req())
 
     def test_bad_token_fetch_request_token(self):
         pass

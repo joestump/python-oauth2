@@ -205,8 +205,8 @@ class Token(object):
         return self.to_string()
 
 
-def setter(setter):
-    name = setter.__name__
+def setter(attr):
+    name = attr.__name__
  
     def getter(self):
         try:
@@ -217,7 +217,7 @@ def setter(setter):
     def deleter(self):
         del self.__dict__[name]
  
-    return property(getter, setter, deleter)
+    return property(getter, attr, deleter)
 
 
 class Request(dict):
@@ -291,6 +291,11 @@ class Request(dict):
     def to_url(self):
         """Serialize as a URL for a GET request."""
         return '%s?%s' % (self.url, self.to_postdata())
+
+    def get_parameter(self, parameter):
+        ret = self.get(parameter)
+        if ret is None:
+            raise Error('Parameter not found: %s' % parameter)
  
     def get_normalized_parameters(self):
         """Return a string that contains the parameters that must be signed."""
@@ -416,73 +421,22 @@ class Server(object):
     This class implements the logic to check requests for authorization. You
     can use it with your web server or web framework to protect certain
     resources with OAuth.
- 
-    As this class has no knowledge of how your application stores data, you
-    have to give it an object it can use to load OAuth objects. Implement a
-    subclass of `oauth.interface.DataStore` for your storage system and supply
-    it to the `Server` instance as `data_store`.
     """
 
     timestamp_threshold = 300 # In seconds, five minutes.
     version = VERSION
     signature_methods = None
-    data_store = None
 
-    def __init__(self, data_store=None, signature_methods=None):
-        self.data_store = data_store
+    def __init__(self, signature_methods=None):
         self.signature_methods = signature_methods or {}
-
-    def set_data_store(self, data_store):
-        self.data_store = data_store
-
-    def get_data_store(self):
-        return self.data_store
 
     def add_signature_method(self, signature_method):
         self.signature_methods[signature_method.name] = signature_method
         return self.signature_methods
 
-    def fetch_request_token(self, oauth_request):
-        """Processes a request_token request and returns the
-        request token on success.
-        """
-        try:
-            # Get the request token for authorization.
-            token = self._get_token(oauth_request, 'request')
-        except Error:
-            # No token required for the initial token request.
-            version = self._get_version(oauth_request)
-            consumer = self._get_consumer(oauth_request)
-            try:
-                callback = self.get_callback(oauth_request)
-            except Error:
-                callback = None # 1.0, no callback specified.
-            self._check_signature(oauth_request, consumer, None)
-            # Fetch a new token.
-            token = self.data_store.fetch_request_token(consumer, callback)
-        return token
-
-    def fetch_access_token(self, oauth_request):
-        """Processes an access_token request and returns the
-        access token on success.
-        """
-        version = self._get_version(oauth_request)
-        consumer = self._get_consumer(oauth_request)
-        try:
-            verifier = self._get_verifier(oauth_request)
-        except Error:
-            verifier = None
-        # Get the request token.
-        token = self._get_token(oauth_request, 'request')
-        self._check_signature(oauth_request, consumer, token)
-        new_token = self.data_store.fetch_access_token(consumer, 
-            token, verifier)
-
-        return new_token
-
-    def verify_request(self, oauth_request):
+    def verify_request(self, request, consumer, token):
         """Verifies an api call and checks all the parameters."""
-        # -> consumer and token
+
         version = self._get_version(oauth_request)
         consumer = self._get_consumer(oauth_request)
         # Get the access token.
@@ -491,33 +445,26 @@ class Server(object):
         parameters = oauth_request.get_nonoauth_parameters()
         return consumer, token, parameters
 
-    def authorize_token(self, token, user):
-        """Authorize a request token."""
-        return self.data_store.authorize_request_token(token, user)
-
-    def get_callback(self, oauth_request):
-        """Get the callback URL."""
-        return oauth_request.get_parameter('oauth_callback')
- 
     def build_authenticate_header(self, realm=''):
         """Optional support for the authenticate header."""
         return {'WWW-Authenticate': 'OAuth realm="%s"' % realm}
 
-    def _get_version(self, oauth_request):
+    def _get_version(self, request):
         """Verify the correct version request for this server."""
         try:
-            version = oauth_request.get_parameter('oauth_version')
+            version = request.get_parameter('oauth_version')
         except:
             version = VERSION
+
         if version and version != self.version:
             raise Error('OAuth version %s not supported.' % str(version))
+
         return version
 
-    def _get_signature_method(self, oauth_request):
+    def _get_signature_method(self, request):
         """Figure out the signature with some defaults."""
         try:
-            signature_method = oauth_request.get_parameter(
-                'oauth_signature_method')
+            signature_method = request.get_parameter('oauth_signature_method')
         except:
             signature_method = SIGNATURE_METHOD
         try:
@@ -530,48 +477,29 @@ class Server(object):
 
         return signature_method
 
-    def _get_consumer(self, oauth_request):
-        consumer_key = oauth_request.get_parameter('oauth_consumer_key')
-        consumer = self.data_store.lookup_consumer(consumer_key)
-        if not consumer:
-            raise Error('Invalid consumer.')
-        return consumer
+    def _get_verifier(self, request):
+        return request.get_parameter('oauth_verifier')
 
-    def _get_token(self, oauth_request, token_type='access'):
-        """Try to find the token for the provided request token key."""
-        token_field = oauth_request.get_parameter('oauth_token')
-        token = self.data_store.lookup_token(token_type, token_field)
-        if not token:
-            raise Error('Invalid %s token: %s' % (token_type, token_field))
-        return token
-    
-    def _get_verifier(self, oauth_request):
-        return oauth_request.get_parameter('oauth_verifier')
-
-    def _check_signature(self, oauth_request, consumer, token):
-        timestamp, nonce = oauth_request._get_timestamp_nonce()
+    def _check_signature(self, request, consumer, token):
+        timestamp, nonce = request._get_timestamp_nonce()
         self._check_timestamp(timestamp)
-        self._check_nonce(consumer, token, nonce)
-        signature_method = self._get_signature_method(oauth_request)
+        signature_method = self._get_signature_method(request)
 
         try:
-            signature = oauth_request.get_parameter('oauth_signature')
+            signature = request.get_parameter('oauth_signature')
         except:
             raise Error('Missing signature.')
 
         # Validate the signature.
-        valid_sig = signature_method.check_signature(oauth_request, consumer,
-            token, signature)
+        valid = signature_method.check(request, consumer, token, signature)
 
-        if not valid_sig:
-            key, base = signature_method.signing_base(
-                oauth_request, consumer, token)
+        if not valid:
+            key, base = signature_method.signing_base(request, consumer, token)
 
             raise Error('Invalid signature. Expected signature base ' 
                 'string: %s' % base)
 
-        built = signature_method.sign(oauth_request, 
-            consumer, token)
+        built = signature_method.sign(request, consumer, token)
 
     def _check_timestamp(self, timestamp):
         """Verify that timestamp is recentish."""
@@ -582,12 +510,6 @@ class Server(object):
             raise Error('Expired timestamp: given %d and now %s has a '
                 'greater difference than threshold %d' %
                 (timestamp, now, self.timestamp_threshold))
-
-    def _check_nonce(self, consumer, token, nonce):
-        """Verify that the nonce is uniqueish."""
-        nonce = self.data_store.lookup_nonce(consumer, token, nonce)
-        if nonce:
-            raise Error('Nonce already used: %s' % str(nonce))
 
 
 class Client(object):
@@ -615,42 +537,6 @@ class Client(object):
 
     def access_resource(self, oauth_request):
         """-> Some protected resource."""
-        raise NotImplementedError
-
-
-class DataStore(object):
-    """A database abstraction used to lookup consumers and tokens.
- 
-    To use your backend store with the `oauth` module, implement a subclass of
-    this class that performs its methods using your database or storage
-    system. Then, when using `oauth.Server`, supply it with an instance of
-    your custom `DataStore` class to have objects stored in natively in your
-    own data store.
- 
-    """
-
-    def lookup_consumer(self, key):
-        """-> OAuthConsumer."""
-        raise NotImplementedError
-
-    def lookup_token(self, oauth_consumer, token_type, token_token):
-        """-> OAuthToken."""
-        raise NotImplementedError
-
-    def lookup_nonce(self, oauth_consumer, oauth_token, nonce):
-        """-> OAuthToken."""
-        raise NotImplementedError
-
-    def fetch_request_token(self, oauth_consumer, oauth_callback):
-        """-> OAuthToken."""
-        raise NotImplementedError
-
-    def fetch_access_token(self, oauth_consumer, oauth_token, oauth_verifier):
-        """-> OAuthToken."""
-        raise NotImplementedError
-
-    def authorize_request_token(self, oauth_token, user):
-        """-> OAuthToken."""
         raise NotImplementedError
 
 
@@ -748,7 +634,6 @@ OAuthConsumer = Consumer
 OAuthRequest = Request
 OAuthServer = Server
 OAuthClient = Client
-OAuthDataStore = DataStore
 OAuthSignatureMethod = SignatureMethod
 OAuthSignatureMethod_HMAC_SHA1 = SignatureMethod_HMAC_SHA1 
 OAuthSignatureMethod_PLAINTEXT = SignatureMethod_PLAINTEXT

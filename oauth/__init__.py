@@ -563,8 +563,11 @@ class Client(httplib2.Http):
     def request(self, uri, method="GET", body=None, headers=None, 
         redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
         
+        if not isinstance(headers, dict):
+            headers = {}
+
         if body and method == "POST":
-            parameters = urlparse.parse_qs(body)
+            parameters = dict(urlparse.parse_qsl(body))
         elif method == "GET":
             parsed = urlparse.urlparse(uri)
             parameters = urlparse.parse_qs(parsed.query)     
@@ -578,12 +581,10 @@ class Client(httplib2.Http):
 
         if method == "POST":
             body = req.to_postdata() 
+            headers['Content-Type'] = 'application/x-www-form-urlencoded'
         elif method == "GET":
             uri = req.to_url()
         else:
-            if headers is None:
-                headers = {}
-
             headers.update(req.to_header())
 
         return httplib2.Http.request(self, uri, method=method, body=body, 
@@ -651,7 +652,7 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
         try:
             import hashlib # 2.5
             hashed = hmac.new(key, raw, hashlib.sha1)
-        except:
+        except ImportError:
             import sha # Deprecated
             hashed = hmac.new(key, raw, sha)
 

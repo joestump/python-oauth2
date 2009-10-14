@@ -27,7 +27,6 @@ import oauth
 import time
 import urllib
 import urlparse
-import cgi
 
 class TestError(unittest.TestCase):
     def test_message(self):
@@ -76,17 +75,26 @@ class TestGenerateFunctions(unittest.TestCase):
         self.assertEqual(exp, now) 
 
 class TestConsumer(unittest.TestCase):
+    def setUp(self):
+        self.key = 'my-key'
+        self.secret = 'my-secret'
+        self.consumer = oauth.Consumer(key=self.key, secret=self.secret)
+
     def test_init(self):
-        key = 'my-key'
-        secret = 'my-secret'
-        consumer = oauth.Consumer(key, secret)
-        self.assertEqual(consumer.key, key)
-        self.assertEqual(consumer.secret, secret)
+        self.assertEqual(self.consumer.key, self.key)
+        self.assertEqual(self.consumer.secret, self.secret)
 
     def test_basic(self):
         self.assertRaises(ValueError, lambda: oauth.Consumer(None, None))
         self.assertRaises(ValueError, lambda: oauth.Consumer('asf', None))
         self.assertRaises(ValueError, lambda: oauth.Consumer(None, 'dasf'))
+
+    def test_str(self):
+        res = dict(urlparse.parse_qsl(str(self.consumer)))
+        self.assertTrue('oauth_consumer_key' in res)
+        self.assertTrue('oauth_consumer_secret' in res)
+        self.assertEquals(res['oauth_consumer_key'], self.consumer.key)
+        self.assertEquals(res['oauth_consumer_secret'], self.consumer.secret)
 
 class TestToken(unittest.TestCase):
     def setUp(self):
@@ -420,7 +428,7 @@ class TestRequest(unittest.TestCase):
         qs = urllib.urlencode(params)
         req = oauth.Request.from_request("GET", url, query_string=qs)
         
-        exp = cgi.parse_qs(qs, keep_blank_values=False)
+        exp = urlparse.parse_qs(qs, keep_blank_values=False)
         for k, v in exp.iteritems():
             exp[k] = urllib.unquote(v[0])
 
@@ -669,13 +677,15 @@ class TestClient(unittest.TestCase):
     consumer_secret = '0e9e6413a9ef49510a4f68ed02cd'
     host = 'http://oauth-sandbox.sevengoslings.net'
 
-#    host = "http://term.ie/oauth/example"
-#    consumer_key = 'key'
-#    consumer_secret = 'secret'
-
     def setUp(self):
         self.consumer = oauth.Consumer(key=self.consumer_key, 
             secret=self.consumer_secret)
+
+        self.body = {
+            'foo': 'bar',
+            'bar': 'foo',
+            'blah': 599999
+        }
 
     def _uri(self, type):
         uri = self.oauth_uris.get(type)
@@ -684,15 +694,42 @@ class TestClient(unittest.TestCase):
 
         return "%s%s" % (self.host, uri)
     
-    def test_get_access_token(self):
+    def test_access_token_get(self):
+        """Test getting an access token via GET."""
         client = oauth.Client(self.consumer, None)
         resp, content = client.request(self._uri('request_token'), "GET")
 
         self.assertEquals(int(resp['status']), 200)
 
-    def test_get_access_token(self):
+    def test_access_token_post(self):
+        """Test getting an access token via POST."""
         client = oauth.Client(self.consumer, None)
         resp, content = client.request(self._uri('request_token'), "POST")
+        print resp
+        print content
 
         self.assertEquals(int(resp['status']), 200)
 
+        res = dict(urlparse.parse_qsl(content))
+        self.assertTrue('oauth_token_key' in res)
+        self.assertTrue('oauth_token_secret' in res)
+
+    def _two_legged(self, method):
+        client = oauth.Client(self.consumer, None)
+
+        return client.request(self._uri('two_legged'), method, 
+            body=urllib.urlencode(self.body))
+
+    def test_two_legged_post(self):
+        """A test of a two-legged OAuth POST request."""
+        resp, content = self._two_legged("POST")
+        print resp
+        print content
+
+        self.assertEquals(int(resp['status']), 200)
+
+    def test_two_legged_get(self):
+        """A test of a two-legged OAuth GET request."""
+        resp, content = self._two_legged("GET")
+        self.assertEquals(int(resp['status']), 200)
+   

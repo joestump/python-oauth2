@@ -23,7 +23,7 @@ THE SOFTWARE.
 """
 
 import unittest
-import oauth
+import oauth2 as oauth
 import time
 import urllib
 import urlparse

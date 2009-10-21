@@ -11,7 +11,7 @@ This code was originally forked from [Leah Culver and Andy Smith's oauth.py code
 # Signing a Request
 
 <pre><code>
-import oauth
+import oauth2 as oauth
 import time
 
 # Set the API endpoint 
@@ -43,4 +43,27 @@ req = oauth.Request(method="GET", url=url, parameters=params)
 # Sign the request.
 signature_method = oauth.SignatureMethod_HMAC_SHA1()
 req.sign_request(signature_method, consumer, token)
+</code></pre>
+
+# Using the Client
+
+The <code>oauth2.Client</code> is based on <code>httplib2</code> and works just as you'd expect it to. The only difference is the first two arguments to the constructor are an instance of <code>oauth2.Consumer</code> and <code>oauth2.Token</code> (<code>oauth2.Token</code> is only needed for three-legged requests).
+
+<pre><code>
+import oauth2 as oauth
+
+# Create your consumer with the proper key/secret.
+consumer = oauth.Consumer(key="your-twitter-consumer-key", 
+    secret="your-twitter-consumer-secret")
+
+# Request token URL for Twitter.
+request_token_url = "http://twitter.com/oauth/request_token"
+
+# Create our client.
+client = oauth.Client(consumer)
+
+# The OAuth Client request works just like httplib2 for the most part.
+resp, content = client.request(request_token_url, "GET")
+print resp
+print content
 </code></pre>

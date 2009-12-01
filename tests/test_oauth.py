@@ -28,6 +28,14 @@ import time
 import urllib
 import urlparse
 
+
+# Fix for python2.5 compatibility
+try:
+    from urlparse import parse_qs, parse_qsl
+except ImportError:
+    from cgi import parse_qs, parse_qsl
+
+
 class TestError(unittest.TestCase):
     def test_message(self):
         try:
@@ -90,7 +98,7 @@ class TestConsumer(unittest.TestCase):
         self.assertRaises(ValueError, lambda: oauth.Consumer(None, 'dasf'))
 
     def test_str(self):
-        res = dict(urlparse.parse_qsl(str(self.consumer)))
+        res = dict(parse_qsl(str(self.consumer)))
         self.assertTrue('oauth_consumer_key' in res)
         self.assertTrue('oauth_consumer_secret' in res)
         self.assertEquals(res['oauth_consumer_key'], self.consumer.key)
@@ -319,7 +327,7 @@ class TestRequest(unittest.TestCase):
 
         req = oauth.Request("GET", realm, params)
         
-        self.assertEquals(params, dict(urlparse.parse_qsl(req.to_postdata())))
+        self.assertEquals(params, dict(parse_qsl(req.to_postdata())))
 
     def test_to_url(self):
         url = "http://sp.example.com/"
@@ -341,8 +349,8 @@ class TestRequest(unittest.TestCase):
         self.assertEquals(exp.netloc, res.netloc) 
         self.assertEquals(exp.path, res.path) 
 
-        a = urlparse.parse_qs(exp.query)
-        b = urlparse.parse_qs(res.query)
+        a = parse_qs(exp.query)
+        b = parse_qs(res.query)
         self.assertEquals(a, b) 
 
     def test_get_normalized_parameters(self):
@@ -360,7 +368,7 @@ class TestRequest(unittest.TestCase):
 
         req = oauth.Request("GET", url, params)
 
-        res = dict(urlparse.parse_qsl(req.get_normalized_parameters()))
+        res = dict(parse_qsl(req.get_normalized_parameters()))
 
         foo = params.copy()
         del foo['oauth_signature']
@@ -428,7 +436,7 @@ class TestRequest(unittest.TestCase):
         qs = urllib.urlencode(params)
         req = oauth.Request.from_request("GET", url, query_string=qs)
         
-        exp = urlparse.parse_qs(qs, keep_blank_values=False)
+        exp = parse_qs(qs, keep_blank_values=False)
         for k, v in exp.iteritems():
             exp[k] = urllib.unquote(v[0])
 
@@ -710,7 +718,7 @@ class TestClient(unittest.TestCase):
 
         self.assertEquals(int(resp['status']), 200)
 
-        res = dict(urlparse.parse_qsl(content))
+        res = dict(parse_qsl(content))
         self.assertTrue('oauth_token_key' in res)
         self.assertTrue('oauth_token_secret' in res)
 
@@ -732,4 +740,3 @@ class TestClient(unittest.TestCase):
         """A test of a two-legged OAuth GET request."""
         resp, content = self._two_legged("GET")
         self.assertEquals(int(resp['status']), 200)
-   

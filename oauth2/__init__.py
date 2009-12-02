@@ -325,7 +325,12 @@ class Request(dict):
     def get_normalized_parameters(self):
         """Return a string that contains the parameters that must be signed."""
         items = [(k, v) for k, v in self.items() if k != 'oauth_signature']
-        return urllib.urlencode(sorted(items))
+        encoded_str = urllib.urlencode(sorted(items))
+        # Encode signature parameters per Oauth Core 1.0 protocol
+        # spec draft 7, section 3.6
+        # (http://tools.ietf.org/html/draft-hammer-oauth-07#section-3.6)
+        # Spaces must be encoded with "%20" instead of "+"
+        return encoded_str.replace('+', '%20')
  
     def sign_request(self, signature_method, consumer, token):
         """Set the signature parameter to the result of sign."""

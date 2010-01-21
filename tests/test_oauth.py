@@ -365,7 +365,6 @@ class TestRequest(unittest.TestCase):
             'oauth_consumer_key': "0685bd9184jfhq22",
             'oauth_signature_method': "HMAC-SHA1",
             'oauth_token': "ad180jjd733klru7",
-            'oauth_signature': "wOJIO9A2W5mFwDgiDvZbTSMK%2FPY%3D",
         }
 
         req = oauth.Request("GET", url, params)
@@ -373,7 +372,6 @@ class TestRequest(unittest.TestCase):
         res = dict(parse_qsl(req.get_normalized_parameters()))
 
         foo = params.copy()
-        del foo['oauth_signature']
         self.assertEquals(foo, res)
         
     def test_sign_request(self):

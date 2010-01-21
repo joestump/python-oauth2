@@ -397,8 +397,18 @@ class TestRequest(unittest.TestCase):
         del foo["oauth_signature"]
         self.assertEqual(urllib.urlencode(sorted(foo.items())), res)
 
-        
-        
+    def test_get_normalized_string_escapes_spaces_properly(self):
+        url = "http://sp.example.com/"
+        params = {
+            "some_random_data": random.randint(100, 1000),
+            "data": "This data with a random number (%d) has spaces!" % random.randint(1000, 2000),
+        }
+
+        req = oauth.Request("GET", url, params)
+        res = req.get_normalized_parameters()
+        expected = urllib.urlencode(sorted(params.items())).replace('+', '%20')
+        self.assertEqual(expected, res)
+
     def test_sign_request(self):
         url = "http://sp.example.com/"
 

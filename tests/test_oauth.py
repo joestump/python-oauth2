@@ -26,6 +26,7 @@ sys.path[0:0] = [os.path.join(os.path.dirname(__file__), ".."),]
 
 import unittest
 import oauth2 as oauth
+import random
 import time
 import urllib
 import urlparse
@@ -369,10 +370,34 @@ class TestRequest(unittest.TestCase):
 
         req = oauth.Request("GET", url, params)
 
-        res = dict(parse_qsl(req.get_normalized_parameters()))
+        res = req.get_normalized_parameters()
+
+        self.assertEquals(urllib.urlencode(sorted(params.items())), res)
+
+    def test_get_normalized_parameters_ignores_auth_signature(self):
+        url = "http://sp.example.com/"
+
+        params = {
+            'oauth_version': "1.0",
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': "137131200",
+            'oauth_consumer_key': "0685bd9184jfhq22",
+            'oauth_signature_method': "HMAC-SHA1",
+            'oauth_signature': "some-random-signature-%d" % random.randint(1000, 2000),
+            'oauth_token': "ad180jjd733klru7",
+        }
+
+        req = oauth.Request("GET", url, params)
+
+        res = req.get_normalized_parameters()
+
+        self.assertNotEquals(urllib.urlencode(sorted(params.items())), res)
 
         foo = params.copy()
-        self.assertEquals(foo, res)
+        del foo["oauth_signature"]
+        self.assertEqual(urllib.urlencode(sorted(foo.items())), res)
+
+        
         
     def test_sign_request(self):
         url = "http://sp.example.com/"

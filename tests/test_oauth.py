@@ -21,6 +21,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
+import sys, os
+sys.path[0:0] = [os.path.join(os.path.dirname(__file__), ".."),]
 
 import unittest
 import oauth2 as oauth
@@ -735,3 +737,7 @@ class TestClient(unittest.TestCase):
         """A test of a two-legged OAuth GET request."""
         resp, content = self._two_legged("GET")
         self.assertEquals(int(resp['status']), 200)
+
+if __name__ == "__main__":
+    unittest.main()
+

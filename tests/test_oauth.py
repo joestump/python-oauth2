@@ -397,7 +397,6 @@ class TestRequest(unittest.TestCase):
 
         for exp, method in methods.items():
             req.sign_request(method, con, tok)
-            print req.copy()
             self.assertEquals(req['oauth_signature_method'], method.name)
             self.assertEquals(req['oauth_signature'], exp)
 
@@ -713,8 +712,6 @@ class TestClient(unittest.TestCase):
         """Test getting an access token via POST."""
         client = oauth.Client(self.consumer, None)
         resp, content = client.request(self._uri('request_token'), "POST")
-        print resp
-        print content
 
         self.assertEquals(int(resp['status']), 200)
 
@@ -731,8 +728,6 @@ class TestClient(unittest.TestCase):
     def test_two_legged_post(self):
         """A test of a two-legged OAuth POST request."""
         resp, content = self._two_legged("POST")
-        print resp
-        print content
 
         self.assertEquals(int(resp['status']), 200)
 

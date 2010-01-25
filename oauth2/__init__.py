@@ -580,7 +580,7 @@ class Client(httplib2.Http):
             parameters = dict(parse_qsl(body))
         elif method == "GET":
             parsed = urlparse.urlparse(uri)
-            parameters = parse_qs(parsed.query)     
+            parameters = parse_qsl(parsed.query)
         else:
             parameters = None
 

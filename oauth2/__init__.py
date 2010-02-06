@@ -29,6 +29,7 @@ import urlparse
 import hmac
 import binascii
 import httplib2
+from types import ListType
 
 try:
     from urlparse import parse_qs, parse_qsl
@@ -309,7 +310,7 @@ class Request(dict):
  
     def to_postdata(self):
         """Serialize as post data for a POST request."""
-        return urllib.urlencode(self)
+        return urllib.urlencode(self.get_parameter_list())
  
     def to_url(self):
         """Serialize as a URL for a GET request."""
@@ -322,9 +323,22 @@ class Request(dict):
 
         return ret
  
+    def get_parameter_list(self):
+        """
+        Get the request parameters as a tuple list (flattening out embedded lists),
+        dict causes issues with urllib Request
+        """
+        items = []
+        for (k,v) in self.iteritems():
+            if type(v) != ListType:
+                items.append((k,v))
+            else:
+                items.extend([(k,x) for x in v])
+        return items
+
     def get_normalized_parameters(self):
         """Return a string that contains the parameters that must be signed."""
-        items = [(k, v) for k, v in self.items() if k != 'oauth_signature']
+        items = [(k,v) for k,v in self.get_parameter_list() if k != 'oauth_signature']
         encoded_str = urllib.urlencode(sorted(items))
         # Encode signature parameters per Oauth Core 1.0 protocol
         # spec draft 7, section 3.6

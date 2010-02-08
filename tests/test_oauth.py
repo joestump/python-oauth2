@@ -30,6 +30,7 @@ import random
 import time
 import urllib
 import urlparse
+from types import ListType
 
 
 # Fix for python2.5 compatibility
@@ -372,13 +373,16 @@ class TestRequest(unittest.TestCase):
             'oauth_consumer_key': "0685bd9184jfhq22",
             'oauth_signature_method': "HMAC-SHA1",
             'oauth_token': "ad180jjd733klru7",
+            'multi': ['FOO','BAR'],
         }
 
         req = oauth.Request("GET", url, params)
 
         res = req.get_normalized_parameters()
+        
+        srtd = [(k, v if type(v) != ListType else sorted(v)) for k,v in sorted(params.items())]
 
-        self.assertEquals(urllib.urlencode(sorted(params.items())), res)
+        self.assertEquals(urllib.urlencode(srtd, True), res)
 
     def test_get_normalized_parameters_ignores_auth_signature(self):
         url = "http://sp.example.com/"

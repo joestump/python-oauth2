@@ -1,18 +1,18 @@
 """
 The MIT License
- 
+
 Copyright (c) 2009 Vic Fryzel
- 
+
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
 to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
- 
+
 The above copyright notice and this permission notice shall be included in
 all copies or substantial portions of the Software.
- 
+
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,12 +21,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
+import sys, os
+sys.path[0:0] = [os.path.join(os.path.dirname(__file__), ".."),]
 
 import unittest
 import oauth2 as oauth
+import random
 import time
 import urllib
 import urlparse
+from types import ListType
 
 
 # Fix for python2.5 compatibility
@@ -58,7 +62,7 @@ class TestGenerateFunctions(unittest.TestCase):
         self.assertEqual(header['WWW-Authenticate'], 'OAuth realm="%s"' %
                          realm)
         self.assertEqual(len(header), 1)
-    
+
     def test_escape(self):
         string = 'http://whatever.com/~someuser/?test=test&other=other'
         self.assert_('~' in oauth.escape(string))
@@ -80,7 +84,7 @@ class TestGenerateFunctions(unittest.TestCase):
     def test_gen_timestamp(self):
         exp = int(time.time())
         now = oauth.generate_timestamp()
-        self.assertEqual(exp, now) 
+        self.assertEqual(exp, now)
 
 class TestConsumer(unittest.TestCase):
     def setUp(self):
@@ -249,7 +253,7 @@ class TestRequest(unittest.TestCase):
 
         req = oauth.Request(method, url1)
         self.assertEquals(req.url, exp1)
-        
+
         req = oauth.Request(method, url2)
         self.assertEquals(req.url, exp2)
 
@@ -267,10 +271,11 @@ class TestRequest(unittest.TestCase):
         oauth_params = {
             'oauth_consumer': 'asdfasdfasdf'
         }
-        
+
         other_params = {
             'foo': 'baz',
-            'bar': 'foo'
+            'bar': 'foo',
+            'multi': ['FOO','BAR']
         }
 
         params = oauth_params
@@ -298,10 +303,10 @@ class TestRequest(unittest.TestCase):
         parts = value.split('OAuth ')
         vars = parts[1].split(', ')
         self.assertTrue(len(vars), (len(params) + 1))
-        
+
         res = {}
         for v in vars:
-            var, val = v.split('=')    
+            var, val = v.split('=')
             res[var] = urllib.unquote(val.strip('"'))
 
         self.assertEquals(realm, res['realm'])
@@ -316,6 +321,7 @@ class TestRequest(unittest.TestCase):
         realm = "http://sp.example.com/"
 
         params = {
+            'multi': ['FOO','BAR'],
             'oauth_version': "1.0",
             'oauth_nonce': "4572616e48616d6d65724c61686176",
             'oauth_timestamp': "137131200",
@@ -326,8 +332,12 @@ class TestRequest(unittest.TestCase):
         }
 
         req = oauth.Request("GET", realm, params)
-        
-        self.assertEquals(params, dict(parse_qsl(req.to_postdata())))
+
+        flat = [('multi','FOO'),('multi','BAR')]
+        del params['multi']
+        flat.extend(params.items())
+        kf = lambda x: x[0]
+        self.assertEquals(sorted(flat, key=kf), sorted(parse_qsl(req.to_postdata()), key=kf))
 
     def test_to_url(self):
         url = "http://sp.example.com/"
@@ -345,13 +355,13 @@ class TestRequest(unittest.TestCase):
         req = oauth.Request("GET", url, params)
         exp = urlparse.urlparse("%s?%s" % (url, urllib.urlencode(params)))
         res = urlparse.urlparse(req.to_url())
-        self.assertEquals(exp.scheme, res.scheme) 
-        self.assertEquals(exp.netloc, res.netloc) 
-        self.assertEquals(exp.path, res.path) 
+        self.assertEquals(exp.scheme, res.scheme)
+        self.assertEquals(exp.netloc, res.netloc)
+        self.assertEquals(exp.path, res.path)
 
         a = parse_qs(exp.query)
         b = parse_qs(res.query)
-        self.assertEquals(a, b) 
+        self.assertEquals(a, b)
 
     def test_get_normalized_parameters(self):
         url = "http://sp.example.com/"
@@ -363,17 +373,52 @@ class TestRequest(unittest.TestCase):
             'oauth_consumer_key': "0685bd9184jfhq22",
             'oauth_signature_method': "HMAC-SHA1",
             'oauth_token': "ad180jjd733klru7",
-            'oauth_signature': "wOJIO9A2W5mFwDgiDvZbTSMK%2FPY%3D",
+            'multi': ['FOO','BAR'],
         }
 
         req = oauth.Request("GET", url, params)
 
-        res = dict(parse_qsl(req.get_normalized_parameters()))
+        res = req.get_normalized_parameters()
+        
+        srtd = [(k, v if type(v) != ListType else sorted(v)) for k,v in sorted(params.items())]
+
+        self.assertEquals(urllib.urlencode(srtd, True), res)
+
+    def test_get_normalized_parameters_ignores_auth_signature(self):
+        url = "http://sp.example.com/"
+
+        params = {
+            'oauth_version': "1.0",
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': "137131200",
+            'oauth_consumer_key': "0685bd9184jfhq22",
+            'oauth_signature_method': "HMAC-SHA1",
+            'oauth_signature': "some-random-signature-%d" % random.randint(1000, 2000),
+            'oauth_token': "ad180jjd733klru7",
+        }
+
+        req = oauth.Request("GET", url, params)
+
+        res = req.get_normalized_parameters()
+
+        self.assertNotEquals(urllib.urlencode(sorted(params.items())), res)
 
         foo = params.copy()
-        del foo['oauth_signature']
-        self.assertEquals(foo, res)
-        
+        del foo["oauth_signature"]
+        self.assertEqual(urllib.urlencode(sorted(foo.items())), res)
+
+    def test_get_normalized_string_escapes_spaces_properly(self):
+        url = "http://sp.example.com/"
+        params = {
+            "some_random_data": random.randint(100, 1000),
+            "data": "This data with a random number (%d) has spaces!" % random.randint(1000, 2000),
+        }
+
+        req = oauth.Request("GET", url, params)
+        res = req.get_normalized_parameters()
+        expected = urllib.urlencode(sorted(params.items())).replace('+', '%20')
+        self.assertEqual(expected, res)
+
     def test_sign_request(self):
         url = "http://sp.example.com/"
 
@@ -391,13 +436,12 @@ class TestRequest(unittest.TestCase):
         req = oauth.Request(method="GET", url=url, parameters=params)
 
         methods = {
-            'TQ6vGQ5A6IZn8dmeGB4+/Jl3EMI=': oauth.SignatureMethod_HMAC_SHA1(), 
+            'TQ6vGQ5A6IZn8dmeGB4+/Jl3EMI=': oauth.SignatureMethod_HMAC_SHA1(),
             'con-test-secret&tok-test-secret': oauth.SignatureMethod_PLAINTEXT()
         }
 
         for exp, method in methods.items():
             req.sign_request(method, con, tok)
-            print req.copy()
             self.assertEquals(req['oauth_signature_method'], method.name)
             self.assertEquals(req['oauth_signature'], exp)
 
@@ -413,7 +457,7 @@ class TestRequest(unittest.TestCase):
             'oauth_token': "ad180jjd733klru7",
             'oauth_signature': "wOJIO9A2W5mFwDgiDvZbTSMK%2FPY%3D",
         }
-        
+
         req = oauth.Request("GET", url, params)
         headers = req.to_header()
 
@@ -421,9 +465,9 @@ class TestRequest(unittest.TestCase):
         req = oauth.Request.from_request("GET", url, headers)
         self.assertEquals(req.method, "GET")
         self.assertEquals(req.url, url)
-        
+
         self.assertEquals(params, req.copy())
-         
+
         # Test with bad OAuth headers
         bad_headers = {
             'Authorization' : 'OAuth this is a bad header'
@@ -435,7 +479,7 @@ class TestRequest(unittest.TestCase):
         # Test getting from query string
         qs = urllib.urlencode(params)
         req = oauth.Request.from_request("GET", url, query_string=qs)
-        
+
         exp = parse_qs(qs, keep_blank_values=False)
         for k, v in exp.iteritems():
             exp[k] = urllib.unquote(v[0])
@@ -458,7 +502,7 @@ class TestRequest(unittest.TestCase):
             'oauth_token': "ad180jjd733klru7",
             'oauth_signature': "wOJIO9A2W5mFwDgiDvZbTSMK%2FPY%3D",
         }
-        
+
         tok = oauth.Token(key="tok-test-key", secret="tok-test-secret")
         req = oauth.Request.from_token_and_callback(tok)
         self.assertFalse('oauth_callback' in req)
@@ -473,7 +517,7 @@ class TestRequest(unittest.TestCase):
 
         tok = oauth.Token(key="tok-test-key", secret="tok-test-secret")
         con = oauth.Consumer(key="con-test-key", secret="con-test-secret")
-        req = oauth.Request.from_consumer_and_token(con, token=tok, 
+        req = oauth.Request.from_consumer_and_token(con, token=tok,
             http_method="GET", http_url=url)
 
         self.assertEquals(req['oauth_token'], tok.key)
@@ -498,10 +542,11 @@ class TestServer(unittest.TestCase):
             'oauth_nonce': "4572616e48616d6d65724c61686176",
             'oauth_timestamp': int(time.time()),
             'bar': 'blerg',
+            'multi': ['FOO','BAR'],
             'foo': 59
         }
 
-        self.consumer = oauth.Consumer(key="consumer-key", 
+        self.consumer = oauth.Consumer(key="consumer-key",
             secret="consumer-secret")
         self.token = oauth.Token(key="token-key", secret="token-secret")
 
@@ -515,7 +560,7 @@ class TestServer(unittest.TestCase):
     def test_init(self):
         server = oauth.Server(signature_methods={'HMAC-SHA1' : oauth.SignatureMethod_HMAC_SHA1()})
         self.assertTrue('HMAC-SHA1' in server.signature_methods)
-        self.assertTrue(isinstance(server.signature_methods['HMAC-SHA1'], 
+        self.assertTrue(isinstance(server.signature_methods['HMAC-SHA1'],
             oauth.SignatureMethod_HMAC_SHA1))
 
         server = oauth.Server()
@@ -524,15 +569,15 @@ class TestServer(unittest.TestCase):
     def test_add_signature_method(self):
         server = oauth.Server()
         res = server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
-        self.assertTrue(len(res) == 1) 
+        self.assertTrue(len(res) == 1)
         self.assertTrue('HMAC-SHA1' in res)
-        self.assertTrue(isinstance(res['HMAC-SHA1'], 
+        self.assertTrue(isinstance(res['HMAC-SHA1'],
             oauth.SignatureMethod_HMAC_SHA1))
 
         res = server.add_signature_method(oauth.SignatureMethod_PLAINTEXT())
-        self.assertTrue(len(res) == 2) 
+        self.assertTrue(len(res) == 2)
         self.assertTrue('PLAINTEXT' in res)
-        self.assertTrue(isinstance(res['PLAINTEXT'], 
+        self.assertTrue(isinstance(res['PLAINTEXT'],
             oauth.SignatureMethod_PLAINTEXT))
 
     def test_verify_request(self):
@@ -544,8 +589,10 @@ class TestServer(unittest.TestCase):
 
         self.assertTrue('bar' in parameters)
         self.assertTrue('foo' in parameters)
+        self.assertTrue('multi' in parameters)
         self.assertEquals(parameters['bar'], 'blerg')
         self.assertEquals(parameters['foo'], 59)
+        self.assertEquals(parameters['multi'], ['FOO','BAR'])
 
     def test_no_version(self):
         url = "http://sp.example.com/"
@@ -554,10 +601,11 @@ class TestServer(unittest.TestCase):
             'oauth_nonce': "4572616e48616d6d65724c61686176",
             'oauth_timestamp': int(time.time()),
             'bar': 'blerg',
+            'multi': ['FOO','BAR'],
             'foo': 59
         }
 
-        self.consumer = oauth.Consumer(key="consumer-key", 
+        self.consumer = oauth.Consumer(key="consumer-key",
             secret="consumer-secret")
         self.token = oauth.Token(key="token-key", secret="token-secret")
 
@@ -582,10 +630,11 @@ class TestServer(unittest.TestCase):
             'oauth_nonce': "4572616e48616d6d65724c61686176",
             'oauth_timestamp': int(time.time()),
             'bar': 'blerg',
+            'multi': ['foo','bar'],
             'foo': 59
         }
 
-        consumer = oauth.Consumer(key="consumer-key", 
+        consumer = oauth.Consumer(key="consumer-key",
             secret="consumer-secret")
         token = oauth.Token(key="token-key", secret="token-secret")
 
@@ -599,7 +648,7 @@ class TestServer(unittest.TestCase):
         server = oauth.Server()
         server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
 
-        self.assertRaises(oauth.Error, server.verify_request, request, 
+        self.assertRaises(oauth.Error, server.verify_request, request,
             consumer, token)
 
     def test_invalid_signature_method(self):
@@ -610,10 +659,11 @@ class TestServer(unittest.TestCase):
             'oauth_nonce': "4572616e48616d6d65724c61686176",
             'oauth_timestamp': int(time.time()),
             'bar': 'blerg',
+            'multi': ['FOO','BAR'],
             'foo': 59
         }
 
-        consumer = oauth.Consumer(key="consumer-key", 
+        consumer = oauth.Consumer(key="consumer-key",
             secret="consumer-secret")
         token = oauth.Token(key="token-key", secret="token-secret")
 
@@ -627,7 +677,7 @@ class TestServer(unittest.TestCase):
         server = oauth.Server()
         server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
 
-        self.assertRaises(oauth.Error, server.verify_request, request, 
+        self.assertRaises(oauth.Error, server.verify_request, request,
             consumer, token)
 
     def test_missing_signature(self):
@@ -638,10 +688,11 @@ class TestServer(unittest.TestCase):
             'oauth_nonce': "4572616e48616d6d65724c61686176",
             'oauth_timestamp': int(time.time()),
             'bar': 'blerg',
+            'multi': ['FOO','BAR'],
             'foo': 59
         }
 
-        consumer = oauth.Consumer(key="consumer-key", 
+        consumer = oauth.Consumer(key="consumer-key",
             secret="consumer-secret")
         token = oauth.Token(key="token-key", secret="token-secret")
 
@@ -656,15 +707,15 @@ class TestServer(unittest.TestCase):
         server = oauth.Server()
         server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
 
-        self.assertRaises(oauth.MissingSignature, server.verify_request, 
+        self.assertRaises(oauth.MissingSignature, server.verify_request,
             request, consumer, token)
 
 
-# Request Token: http://oauth-sandbox.sevengoslings.net/request_token 
-# Auth: http://oauth-sandbox.sevengoslings.net/authorize 
-# Access Token: http://oauth-sandbox.sevengoslings.net/access_token 
-# Two-legged: http://oauth-sandbox.sevengoslings.net/two_legged 
-# Three-legged: http://oauth-sandbox.sevengoslings.net/three_legged 
+# Request Token: http://oauth-sandbox.sevengoslings.net/request_token
+# Auth: http://oauth-sandbox.sevengoslings.net/authorize
+# Access Token: http://oauth-sandbox.sevengoslings.net/access_token
+# Two-legged: http://oauth-sandbox.sevengoslings.net/two_legged
+# Three-legged: http://oauth-sandbox.sevengoslings.net/three_legged
 # Key: bd37aed57e15df53
 # Secret: 0e9e6413a9ef49510a4f68ed02cd
 class TestClient(unittest.TestCase):
@@ -680,18 +731,19 @@ class TestClient(unittest.TestCase):
         'two_legged': '/two_legged',
         'three_legged': '/three_legged'
     }
-        
+
     consumer_key = 'bd37aed57e15df53'
     consumer_secret = '0e9e6413a9ef49510a4f68ed02cd'
     host = 'http://oauth-sandbox.sevengoslings.net'
 
     def setUp(self):
-        self.consumer = oauth.Consumer(key=self.consumer_key, 
+        self.consumer = oauth.Consumer(key=self.consumer_key,
             secret=self.consumer_secret)
 
         self.body = {
             'foo': 'bar',
             'bar': 'foo',
+            'multi': ['FOO','BAR'],
             'blah': 599999
         }
 
@@ -701,7 +753,7 @@ class TestClient(unittest.TestCase):
             raise KeyError("%s is not a valid OAuth URI type." % type)
 
         return "%s%s" % (self.host, uri)
-    
+
     def test_access_token_get(self):
         """Test getting an access token via GET."""
         client = oauth.Client(self.consumer, None)
@@ -713,26 +765,22 @@ class TestClient(unittest.TestCase):
         """Test getting an access token via POST."""
         client = oauth.Client(self.consumer, None)
         resp, content = client.request(self._uri('request_token'), "POST")
-        print resp
-        print content
 
         self.assertEquals(int(resp['status']), 200)
 
         res = dict(parse_qsl(content))
-        self.assertTrue('oauth_token_key' in res)
+        self.assertTrue('oauth_token' in res)
         self.assertTrue('oauth_token_secret' in res)
 
     def _two_legged(self, method):
         client = oauth.Client(self.consumer, None)
 
-        return client.request(self._uri('two_legged'), method, 
+        return client.request(self._uri('two_legged'), method,
             body=urllib.urlencode(self.body))
 
     def test_two_legged_post(self):
         """A test of a two-legged OAuth POST request."""
         resp, content = self._two_legged("POST")
-        print resp
-        print content
 
         self.assertEquals(int(resp['status']), 200)
 
@@ -740,3 +788,7 @@ class TestClient(unittest.TestCase):
         """A test of a two-legged OAuth GET request."""
         resp, content = self._two_legged("GET")
         self.assertEquals(int(resp['status']), 200)
+
+if __name__ == "__main__":
+    unittest.main()
+

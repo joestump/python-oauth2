@@ -29,6 +29,7 @@ import urlparse
 import hmac
 import binascii
 import httplib2
+from types import ListType
 
 try:
     from urlparse import parse_qs, parse_qsl
@@ -309,7 +310,10 @@ class Request(dict):
  
     def to_postdata(self):
         """Serialize as post data for a POST request."""
-        return urllib.urlencode(self)
+        # tell urlencode to deal with sequence values and map them correctly
+        # to resulting querystring. for example self["k"] = ["v1", "v2"] will
+        # result in 'k=v1&k=v2' and not k=%5B%27v1%27%2C+%27v2%27%5D
+        return urllib.urlencode(self, True)
  
     def to_url(self):
         """Serialize as a URL for a GET request."""
@@ -324,8 +328,9 @@ class Request(dict):
  
     def get_normalized_parameters(self):
         """Return a string that contains the parameters that must be signed."""
-        items = [(k, v) for k, v in self.items() if k != 'oauth_signature']
-        encoded_str = urllib.urlencode(sorted(items))
+        # 1.0a/9.1.1 states that kvp must be sorted by key, then by value
+        items = [(k, v if type(v) != ListType else sorted(v)) for k,v in sorted(self.items()) if k != 'oauth_signature']
+        encoded_str = urllib.urlencode(items, True)
         # Encode signature parameters per Oauth Core 1.0 protocol
         # spec draft 7, section 3.6
         # (http://tools.ietf.org/html/draft-hammer-oauth-07#section-3.6)
@@ -580,7 +585,7 @@ class Client(httplib2.Http):
             parameters = dict(parse_qsl(body))
         elif method == "GET":
             parsed = urlparse.urlparse(uri)
-            parameters = parse_qs(parsed.query)     
+            parameters = parse_qsl(parsed.query)
         else:
             parameters = None
 

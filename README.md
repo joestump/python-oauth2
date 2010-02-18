@@ -113,6 +113,7 @@ can be easily translated to a web application.
     accepted = 'n'
     while accepted.lower() == 'n':
         accepted = raw_input('Have you authorized me? (y/n) ')
+    oauth_verifier = raw_input('What is the PIN? ')
     
     # Step 3: Once the consumer has redirected the user back to the oauth_callback
     # URL you can request the access token the user has approved. You use the 
@@ -123,7 +124,8 @@ can be easily translated to a web application.
         request_token['oauth_token_secret'])
     client = oauth.Client(consumer, token)
     
-    resp, content = client.request(access_token_url, "POST")
+    resp, content = client.request(access_token_url, "POST", 
+        body="oauth_verifier=%s" % oauth_verifier)
     access_token = dict(urlparse.parse_qsl(content))
     
     print "Access Token:"

@@ -291,3 +291,7 @@ and code here might need to be updated if you are using Python 2.6+.
         return HttpResponseRedirect('/')
     
 
+### `settings.py`
+
+* You'll likely want to set `LOGIN_URL` to `/login/` so that users are properly redirected to your Twitter login handler when you use `@login_required` in other parts of your Django app.
+* You can also set `AUTH_PROFILE_MODULE = 'mytwitterapp.Profile'` so that you can easily access the Twitter OAuth token/secret for that user using the `User.get_profile()` method in Django.

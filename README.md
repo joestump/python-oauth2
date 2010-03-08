@@ -132,3 +132,158 @@ can be easily translated to a web application.
     print
     print "You may now access protected resources using the access tokens above." 
     print
+
+# Logging into Django w/ Twitter
+
+Twitter also has the ability to authenticate a user [via an OAuth flow](http://apiwiki.twitter.com/Sign-in-with-Twitter). This
+flow is exactly like the three-legged OAuth flow, except you send them to a 
+slightly different URL to authorize them. 
+
+In this example we'll look at how you can implement this login flow using 
+Django and python-oauth2. 
+
+## Set up a Profile model
+
+You'll need a place to store all of your Twitter OAuth credentials after the
+user has logged in. In your app's `models.py` file you should add something
+that resembles the following model.
+
+    class Profile(models.Model):
+        user = models.ForeignKey(User)
+        oauth_token = models.CharField(max_length=200)
+        oauth_secret = models.CharField(max_length=200)
+
+## Set up your Django views
+
+### `urls.py`
+
+Your `urls.py` should look something like the following. Basically, you need to
+have a login URL, a callback URL that Twitter will redirect your users back to,
+and a logout URL.
+
+In this example `^login/` and `twitter_login` will send the user to Twitter to
+be logged in, `^login/authenticated/` and `twitter_authenticated` will confirm
+the login, create the account if necessary, and log the user into the 
+application, and `^logout`/ logs the user out in the `twitter_logout` view.
+
+
+    from django.conf.urls.defaults import *
+    from django.contrib import admin
+    from mytwitterapp.views import twitter_login, twitter_logout, \
+        twitter_authenticated
+
+    admin.autodiscover()
+
+    urlpatterns = patterns('',
+        url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
+        url(r'^admin/', include(admin.site.urls)),
+        url(r'^login/?$', twitter_login),
+        url(r'^logout/?$', twitter_logout),
+        url(r'^login/authenticated/?$', twitter_authenticated),
+    )
+
+### `views.py`
+
+*NOTE:* The following code was coded for Python 2.4 so some of the libraries 
+and code here might need to be updated if you are using Python 2.6+. 
+
+    # Python
+    import oauth2 as oauth
+    import cgi
+
+    # Django
+    from django.shortcuts import render_to_response
+    from django.http import HttpResponseRedirect
+    from django.conf import settings
+    from django.contrib.auth import authenticate, login, logout
+    from django.contrib.auth.models import User
+    from django.contrib.auth.decorators import login_required
+
+    # Project
+    from mytwitterapp.models import Profile
+
+    consumer = oauth.Consumer(settings.TWITTER_TOKEN, settings.TWITTER_SECRET)
+    client = oauth.Client(consumer)
+
+    request_token_url = 'http://twitter.com/oauth/request_token'
+    access_token_url = 'http://twitter.com/oauth/access_token'
+
+    # This is the slightly different URL used to authenticate/authorize.
+    authenticate_url = 'http://twitter.com/oauth/authenticate'
+
+    def twitter_login(request):
+        # Step 1. Get a request token from Twitter.
+        resp, content = client.request(request_token_url, "GET")
+        if resp['status'] != '200':
+            raise Exception("Invalid response from Twitter.")
+
+        # Step 2. Store the request token in a session for later use.
+        request.session['request_token'] = dict(cgi.parse_qsl(content))
+
+        # Step 3. Redirect the user to the authentication URL.
+        url = "%s?oauth_token=%s" % (authenticate_url,
+            request.session['request_token']['oauth_token'])
+
+        return HttpResponseRedirect(url)
+
+    
+    @login_required
+    def twitter_logout(request):
+        # Log a user out using Django's logout function and redirect them
+        # back to the homepage.
+        logout(request)
+        return HttpResponseRedirect('/')
+
+    def twitter_authenticated(request):
+        # Step 1. Use the request token in the session to build a new client.
+        token = oauth.Token(request.session['request_token']['oauth_token'],
+            request.session['request_token']['oauth_token_secret'])
+        client = oauth.Client(consumer, token)
+    
+        # Step 2. Request the authorized access token from Twitter.
+        resp, content = client.request(access_token_url, "GET")
+        if resp['status'] != '200':
+            print content
+            raise Exception("Invalid response from Twitter.")
+    
+        """
+        This is what you'll get back from Twitter. Note that it includes the
+        user's user_id and screen_name.
+        {
+            'oauth_token_secret': 'IcJXPiJh8be3BjDWW50uCY31chyhsMHEhqJVsphC3M',
+            'user_id': '120889797', 
+            'oauth_token': '120889797-H5zNnM3qE0iFoTTpNEHIz3noL9FKzXiOxwtnyVOD',
+            'screen_name': 'heyismysiteup'
+        }
+        """
+        access_token = dict(cgi.parse_qsl(content))
+    
+        # Step 3. Lookup the user or create them if they don't exist.
+        try:
+            user = User.objects.get(username=access_token['screen_name'])
+        except User.DoesNotExist:
+            # When creating the user I just use their screen_name@twitter.com
+            # for their email and the oauth_token_secret for their password.
+            # These two things will likely never be used. Alternatively, you 
+            # can prompt them for their email here. Either way, the password 
+            # should never be used.
+            user = User.objects.create_user(access_token['screen_name'],
+                '%s@twitter.com' % access_token['screen_name'],
+                access_token['oauth_token_secret'])
+    
+            # Save our permanent token and secret for later.
+            profile = Profile()
+            profile.user = user
+            profile.oauth_token = access_token['oauth_token']
+            profile.oauth_secret = access_token['oauth_token_secret']
+            profile.save()
+    
+        # Authenticate the user and log them in using Django's pre-built 
+        # functions for these things.
+        user = authenticate(username=access_token['screen_name'],
+            password=access_token['oauth_token_secret'])
+        login(request, user)
+    
+        return HttpResponseRedirect('/')
+    
+

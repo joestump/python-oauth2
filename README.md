@@ -204,6 +204,8 @@ and code here might need to be updated if you are using Python 2.6+.
     # Project
     from mytwitterapp.models import Profile
 
+    # It's probably a good idea to put your consumer's OAuth token and
+    # OAuth secret into your project's settings. 
     consumer = oauth.Consumer(settings.TWITTER_TOKEN, settings.TWITTER_SECRET)
     client = oauth.Client(consumer)
 

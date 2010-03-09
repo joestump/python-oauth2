@@ -586,11 +586,14 @@ class Client(httplib2.Http):
 
     def request(self, uri, method="GET", body=None, headers=None, 
         redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
-        
+        DEFAULT_CONTENT_TYPE = 'application/x-www-form-urlencoded'
+
         if not isinstance(headers, dict):
             headers = {}
 
-        if body and method == "POST":
+        is_multipart = method == 'POST' and headers.get('Content-Type', DEFAULT_CONTENT_TYPE) != DEFAULT_CONTENT_TYPE
+
+        if body and method == "POST" and not is_multipart:
             parameters = dict(parse_qsl(body))
         elif method == "GET":
             parsed = urlparse.urlparse(uri)
@@ -609,9 +612,13 @@ class Client(httplib2.Http):
 
         req.sign_request(self.method, self.consumer, self.token)
 
+
         if method == "POST":
-            body = req.to_postdata() 
-            headers['Content-Type'] = 'application/x-www-form-urlencoded'
+            headers['Content-Type'] = headers.get('Content-Type', DEFAULT_CONTENT_TYPE)
+            if is_multipart:
+                headers.update(req.to_header())
+            else:
+                body = req.to_postdata()
         elif method == "GET":
             uri = req.to_url()
         else:

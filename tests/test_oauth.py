@@ -31,7 +31,8 @@ import time
 import urllib
 import urlparse
 from types import ListType
-
+import mox
+import httplib2
 
 # Fix for python2.5 compatibility
 try:
@@ -737,6 +738,7 @@ class TestClient(unittest.TestCase):
     host = 'http://oauth-sandbox.sevengoslings.net'
 
     def setUp(self):
+        self.mox = mox.Mox()
         self.consumer = oauth.Consumer(key=self.consumer_key,
             secret=self.consumer_secret)
 
@@ -747,12 +749,30 @@ class TestClient(unittest.TestCase):
             'blah': 599999
         }
 
+    def tearDown(self):
+        self.mox.UnsetStubs()
+
     def _uri(self, type):
         uri = self.oauth_uris.get(type)
         if uri is None:
             raise KeyError("%s is not a valid OAuth URI type." % type)
 
         return "%s%s" % (self.host, uri)
+
+    def create_simple_multipart_data(self, data):
+        boundary = '---Boundary-%d' % random.randint(1,1000)
+        crlf = '\r\n'
+        items = []
+        for key, value in data.iteritems():
+            items += [
+                '--'+boundary,
+                'Content-Disposition: form-data; name="%s"'%str(key),
+                '',
+                str(value),
+            ]
+        items += ['', '--'+boundary+'--', '']
+        content_type = 'multipart/form-data; boundary=%s' % boundary
+        return content_type, crlf.join(items)
 
     def test_access_token_get(self):
         """Test getting an access token via GET."""
@@ -788,6 +808,32 @@ class TestClient(unittest.TestCase):
         """A test of a two-legged OAuth GET request."""
         resp, content = self._two_legged("GET")
         self.assertEquals(int(resp['status']), 200)
+
+    def test_multipart_post_does_not_alter_body(self):
+        self.mox.StubOutWithMock(httplib2.Http, 'request')
+        random_result = random.randint(1,100)
+
+        data = {
+            'rand-%d'%random.randint(1,100):random.randint(1,100),
+        }
+        content_type, body = self.create_simple_multipart_data(data)
+
+        client = oauth.Client(self.consumer, None)
+        uri = self._uri('two_legged')
+
+        expected_kwargs = {
+            'method':'POST',
+            'body':body,
+            'redirections':httplib2.DEFAULT_MAX_REDIRECTS,
+            'connection_type':None,
+            'headers':mox.IsA(dict),
+        }
+        httplib2.Http.request(client, uri, **expected_kwargs).AndReturn(random_result)
+
+        self.mox.ReplayAll()
+        result = client.request(uri, 'POST', headers={'Content-Type':content_type}, body=body)
+        self.assertEqual(result, random_result)
+        self.mox.VerifyAll()
 
 if __name__ == "__main__":
     unittest.main()

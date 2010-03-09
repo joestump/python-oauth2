@@ -122,10 +122,10 @@ can be easily translated to a web application.
     # access token somewhere safe, like a database, for future use.
     token = oauth.Token(request_token['oauth_token'],
         request_token['oauth_token_secret'])
+    token.set_verifier(oauth_verifier)
     client = oauth.Client(consumer, token)
     
-    resp, content = client.request(access_token_url, "POST", 
-        body="oauth_verifier=%s" % oauth_verifier)
+    resp, content = client.request(access_token_url, "POST")
     access_token = dict(urlparse.parse_qsl(content))
     
     print "Access Token:"

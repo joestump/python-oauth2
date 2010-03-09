@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name="oauth2",
-      version="1.0.8",
+      version="1.0.9",
       description="Library for OAuth version 1.0a.",
       author="Joe Stump",
       author_email="joe@simplegeo.com",
@@ -13,4 +13,4 @@ setup(name="oauth2",
       license = "MIT License",
       keywords="oauth",
       zip_safe = True,
-      tests_require=['nose', 'coverage'])
+      tests_require=['nose', 'coverage', 'mox'])

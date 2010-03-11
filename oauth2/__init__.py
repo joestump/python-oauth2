@@ -266,8 +266,7 @@ class Request(dict):
  
     @setter
     def url(self, value):
-        parts = urlparse.urlparse(value)
-        scheme, netloc, path = parts[:3]
+        scheme, netloc, path, params, query, fragment = urlparse.urlparse(value)
 
         # Exclude default port numbers.
         if scheme == 'http' and netloc[-3:] == ':80':
@@ -278,7 +277,7 @@ class Request(dict):
         if scheme != 'http' and scheme != 'https':
             raise ValueError("Unsupported URL %s (%s)." % (value, scheme))
 
-        value = '%s://%s%s' % (scheme, netloc, path)
+        value = urlparse.urlunparse((scheme, netloc, path, params, query, fragment))
         self.__dict__['url'] = value
  
     @setter
@@ -316,7 +315,14 @@ class Request(dict):
  
     def to_url(self):
         """Serialize as a URL for a GET request."""
-        return '%s?%s' % (self.url, self.to_postdata())
+        base_url = urlparse.urlparse(self.url)
+        query = urlparse.parse_qs(base_url.query)
+        for k, v in self.items():
+            query.setdefault(k, []).append(v)
+        url = (base_url.scheme, base_url.netloc, base_url.path, base_url.params,
+               urllib.urlencode(query, True), base_url.fragment)
+        print url
+        return urlparse.urlunparse(url)
 
     def get_parameter(self, parameter):
         ret = self.get(parameter)

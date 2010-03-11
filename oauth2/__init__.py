@@ -321,7 +321,6 @@ class Request(dict):
             query.setdefault(k, []).append(v)
         url = (base_url.scheme, base_url.netloc, base_url.path, base_url.params,
                urllib.urlencode(query, True), base_url.fragment)
-        print url
         return urlparse.urlunparse(url)
 
     def get_parameter(self, parameter):

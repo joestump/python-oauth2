@@ -258,6 +258,13 @@ class TestRequest(unittest.TestCase):
         req = oauth.Request(method, url2)
         self.assertEquals(req.url, exp2)
 
+    def test_url_query(self):
+        url = "https://www.google.com/m8/feeds/contacts/default/full/?alt=json&max-contacts=10"
+        method = "GET"
+        
+        req = oauth.Request(method, url)
+        self.assertEquals(req.url, url)
+
     def test_get_parameter(self):
         url = "http://example.com"
         method = "GET"
@@ -362,6 +369,35 @@ class TestRequest(unittest.TestCase):
 
         a = parse_qs(exp.query)
         b = parse_qs(res.query)
+        self.assertEquals(a, b)
+    
+    def test_to_url_with_query(self):
+        url = "https://www.google.com/m8/feeds/contacts/default/full/?alt=json&max-contacts=10"
+
+        params = {
+            'oauth_version': "1.0",
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': "137131200",
+            'oauth_consumer_key': "0685bd9184jfhq22",
+            'oauth_signature_method': "HMAC-SHA1",
+            'oauth_token': "ad180jjd733klru7",
+            'oauth_signature': "wOJIO9A2W5mFwDgiDvZbTSMK%2FPY%3D",
+        }
+
+        req = oauth.Request("GET", url, params)
+        # Note: the url above already has query parameters, so append new ones with &
+        exp = urlparse.urlparse("%s&%s" % (url, urllib.urlencode(params)))
+        res = urlparse.urlparse(req.to_url())
+        self.assertEquals(exp.scheme, res.scheme)
+        self.assertEquals(exp.netloc, res.netloc)
+        self.assertEquals(exp.path, res.path)
+
+        a = parse_qs(exp.query)
+        b = parse_qs(res.query)
+        self.assertTrue('alt' in b)
+        self.assertTrue('max-contacts' in b)
+        self.assertEquals(b['alt'], ['json'])
+        self.assertEquals(b['max-contacts'], ['10'])
         self.assertEquals(a, b)
 
     def test_get_normalized_parameters(self):

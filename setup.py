@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 setup(name="oauth2",
-      version="1.1.0",
+      version="1.1.1",
       description="Library for OAuth version 1.0a.",
       author="Joe Stump",
       author_email="joe@simplegeo.com",

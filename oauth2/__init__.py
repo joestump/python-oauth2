@@ -692,7 +692,7 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
 
         # HMAC object.
         try:
-            import hashlib.sha1 as sha # 2.5
+            from hashlib import sha1 as sha
         except ImportError:
             import sha # Deprecated
 

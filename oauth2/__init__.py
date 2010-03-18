@@ -316,7 +316,7 @@ class Request(dict):
     def to_url(self):
         """Serialize as a URL for a GET request."""
         base_url = urlparse.urlparse(self.url)
-        query = urlparse.parse_qs(base_url.query)
+        query = parse_qs(base_url.query)
         for k, v in self.items():
             query.setdefault(k, []).append(v)
         url = (base_url.scheme, base_url.netloc, base_url.path, base_url.params,

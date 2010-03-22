@@ -27,7 +27,7 @@ import os
 from google.appengine.ext import webapp
 from google.appengine.ext import db
 from google.appengine.ext.webapp import util
-import oauth2 as oauth
+import oauth2 as oauth # httplib2 is required for this to work on AppEngine
 
 class Client(db.Model):
     # oauth_key is the Model's key_name field

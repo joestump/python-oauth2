@@ -222,14 +222,8 @@ class TestRequest(unittest.TestCase):
         url = "http://example.com"
         method = "GET"
         req = oauth.Request(method)
-
-        try:
-            url = req.url
-            self.fail("AttributeError should have been raised on empty url.")
-        except AttributeError:
-            pass
-        except Exception, e:
-            self.fail(str(e))
+        self.assertTrue(req.url is None)
+        self.assertTrue(req.normalized_url is None)
 
     def test_deleter(self):
         url = "http://example.com"
@@ -253,17 +247,21 @@ class TestRequest(unittest.TestCase):
         method = "GET"
 
         req = oauth.Request(method, url1)
-        self.assertEquals(req.url, exp1)
+        self.assertEquals(req.normalized_url, exp1)
+        self.assertEquals(req.url, url1)
 
         req = oauth.Request(method, url2)
-        self.assertEquals(req.url, exp2)
+        self.assertEquals(req.normalized_url, exp2)
+        self.assertEquals(req.url, url2)
 
     def test_url_query(self):
         url = "https://www.google.com/m8/feeds/contacts/default/full/?alt=json&max-contacts=10"
+        normalized_url = urlparse.urlunparse(urlparse.urlparse(url)[:3] + (None, None, None))
         method = "GET"
         
         req = oauth.Request(method, url)
         self.assertEquals(req.url, url)
+        self.assertEquals(req.normalized_url, normalized_url)
 
     def test_get_parameter(self):
         url = "http://example.com"
@@ -399,6 +397,30 @@ class TestRequest(unittest.TestCase):
         self.assertEquals(b['alt'], ['json'])
         self.assertEquals(b['max-contacts'], ['10'])
         self.assertEquals(a, b)
+
+    def test_signature_base_string_with_query(self):
+        url = "https://www.google.com/m8/feeds/contacts/default/full/?alt=json&max-contacts=10"
+        params = {
+            'oauth_version': "1.0",
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': "137131200",
+            'oauth_consumer_key': "0685bd9184jfhq22",
+            'oauth_signature_method': "HMAC-SHA1",
+            'oauth_token': "ad180jjd733klru7",
+            'oauth_signature': "wOJIO9A2W5mFwDgiDvZbTSMK%2FPY%3D",
+        }
+        req = oauth.Request("GET", url, params)
+        self.assertEquals(req.normalized_url, 'https://www.google.com/m8/feeds/contacts/default/full/')
+        self.assertEquals(req.url, 'https://www.google.com/m8/feeds/contacts/default/full/?alt=json&max-contacts=10')
+        normalized_params = parse_qsl(req.get_normalized_parameters())
+        self.assertTrue(len(normalized_params), len(params) + 2)
+        normalized_params = dict(normalized_params)
+        for key, value in params.iteritems():
+            if key == 'oauth_signature':
+                continue
+            self.assertEquals(value, normalized_params[key])
+        self.assertEquals(normalized_params['alt'], 'json')
+        self.assertEquals(normalized_params['max-contacts'], '10')
 
     def test_get_normalized_parameters(self):
         url = "http://sp.example.com/"
@@ -869,6 +891,36 @@ class TestClient(unittest.TestCase):
         self.mox.ReplayAll()
         result = client.request(uri, 'POST', headers={'Content-Type':content_type}, body=body)
         self.assertEqual(result, random_result)
+        self.mox.VerifyAll()
+
+    def test_url_with_query_string(self):
+        self.mox.StubOutWithMock(httplib2.Http, 'request')
+        uri = 'http://example.com/foo/bar/?show=thundercats&character=snarf'
+        client = oauth.Client(self.consumer, None)
+        expected_kwargs = {
+            'method': 'GET',
+            'body': None,
+            'redirections': httplib2.DEFAULT_MAX_REDIRECTS,
+            'connection_type': None,
+            'headers': mox.IsA(dict),
+        }
+        def oauth_verifier(url):
+            req = oauth.Request.from_consumer_and_token(self.consumer, None,
+                    http_method='GET', http_url=uri, parameters={})
+            req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), self.consumer, None)
+            expected = parse_qsl(urlparse.urlparse(req.to_url()).query)
+            actual = parse_qsl(urlparse.urlparse(url).query)
+            if len(expected) != len(actual):
+                return False
+            actual = dict(actual)
+            for key, value in expected:
+                if key not in ('oauth_signature', 'oauth_nonce', 'oauth_timestamp'):
+                    if actual[key] != value:
+                        return False
+            return True
+        httplib2.Http.request(client, mox.Func(oauth_verifier), **expected_kwargs)
+        self.mox.ReplayAll()
+        client.request(uri, 'GET')
         self.mox.VerifyAll()
 
 if __name__ == "__main__":

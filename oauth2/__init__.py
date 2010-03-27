@@ -250,35 +250,33 @@ class Request(dict):
  
     """
  
-    http_method = HTTP_METHOD
-    http_url = None
     version = VERSION
  
     def __init__(self, method=HTTP_METHOD, url=None, parameters=None):
-        if method is not None:
-            self.method = method
- 
-        if url is not None:
-            self.url = url
- 
+        self.method = method
+        self.url = url
         if parameters is not None:
             self.update(parameters)
  
     @setter
     def url(self, value):
-        scheme, netloc, path, params, query, fragment = urlparse.urlparse(value)
-
-        # Exclude default port numbers.
-        if scheme == 'http' and netloc[-3:] == ':80':
-            netloc = netloc[:-3]
-        elif scheme == 'https' and netloc[-4:] == ':443':
-            netloc = netloc[:-4]
-
-        if scheme != 'http' and scheme != 'https':
-            raise ValueError("Unsupported URL %s (%s)." % (value, scheme))
-
-        value = urlparse.urlunparse((scheme, netloc, path, params, query, fragment))
         self.__dict__['url'] = value
+        if value is not None:
+            scheme, netloc, path, params, query, fragment = urlparse.urlparse(value)
+
+            # Exclude default port numbers.
+            if scheme == 'http' and netloc[-3:] == ':80':
+                netloc = netloc[:-3]
+            elif scheme == 'https' and netloc[-4:] == ':443':
+                netloc = netloc[:-4]
+            if scheme not in ('http', 'https'):
+                raise ValueError("Unsupported URL %s (%s)." % (value, scheme))
+
+            # Normalized URL excludes params, query, and fragment.
+            self.normalized_url = urlparse.urlunparse((scheme, netloc, path, None, None, None))
+        else:
+            self.normalized_url = None
+            self.__dict__['url'] = None
  
     @setter
     def method(self, value):
@@ -342,6 +340,11 @@ class Request(dict):
                 items.extend((key, item) for item in value)
             else:
                 items.append((key, value))
+
+        # Include any query string parameters from the provided URL
+        query = urlparse.urlparse(self.url)[4]
+        items.extend(self._split_url_string(query).items())
+
         encoded_str = urllib.urlencode(sorted(items))
         # Encode signature parameters per Oauth Core 1.0 protocol
         # spec draft 7, section 3.6
@@ -600,15 +603,6 @@ class Client(httplib2.Http):
 
         if body and method == "POST" and not is_multipart:
             parameters = dict(parse_qsl(body))
-        elif method == "GET":
-            parsed = urlparse.urlparse(uri)
-
-            try:
-                query = parsed.query
-            except AttributeError:
-                query = parsed[4]
-
-            parameters = parse_qsl(query)     
         else:
             parameters = None
 
@@ -676,7 +670,7 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
     def signing_base(self, request, consumer, token):
         sig = (
             escape(request.method),
-            escape(request.url),
+            escape(request.normalized_url),
             escape(request.get_normalized_parameters()),
         )
 
@@ -684,6 +678,7 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
         if token:
             key += escape(token.secret)
         raw = '&'.join(sig)
+        print key, raw
         return key, raw
 
     def sign(self, request, consumer, token):

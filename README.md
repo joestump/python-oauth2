@@ -34,8 +34,8 @@ This code was originally forked from [Leah Culver and Andy Smith's oauth.py code
     consumer = oauth.Consumer(key="con-test-key", secret="con-test-secret")
     
     # Set our token/key parameters
-    params['oauth_token'] = tok.key
-    params['oauth_consumer_key'] = con.key
+    params['oauth_token'] = token.key
+    params['oauth_consumer_key'] = consumer.key
     
     # Create our request. Change method, etc. accordingly.
     req = oauth.Request(method="GET", url=url, parameters=params)

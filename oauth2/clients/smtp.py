@@ -11,6 +11,5 @@ class SMTP(smtplib.SMTP):
         if token is not None and not isinstance(token, oauth2.Token):
             raise ValueError("Invalid token.")
 
-        self.docmd('AUTH', 'XOAUTH %s' + \
+        self.docmd('AUTH', 'XOAUTH %s' % \
             base64.b64encode(oauth2.build_xoauth_string(url, consumer, token)))
-

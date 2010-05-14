@@ -295,3 +295,63 @@ and code here might need to be updated if you are using Python 2.6+.
 
 * You'll likely want to set `LOGIN_URL` to `/login/` so that users are properly redirected to your Twitter login handler when you use `@login_required` in other parts of your Django app.
 * You can also set `AUTH_PROFILE_MODULE = 'mytwitterapp.Profile'` so that you can easily access the Twitter OAuth token/secret for that user using the `User.get_profile()` method in Django.
+
+# XOAUTH for IMAP and SMTP
+
+Gmail supports OAuth over IMAP and SMTP via a standard they call XOAUTH. This allows you to authenticate against Gmail's IMAP and SMTP servers using an OAuth token and secret. It also has the added benefit of allowing you to use vanilla SMTP and IMAP libraries. The `python-oauth2` package provides both IMAP and SMTP libraries that implement XOAUTH and wrap `imaplib.IMAP4_SSL` and `smtplib.SMTP`. This allows you to connect to Gmail with OAuth credentials using standard Python libraries. 
+
+## IMAP
+
+    import oauth2 as oauth
+    import oauth2.clients.imap as imaplib
+
+    # Set up your Consumer and Token as per usual. Just like any other
+    # three-legged OAuth request.
+    consumer = oauth.Consumer('your_consumer_key', 'your_consumer_secret')
+    token = oauth.Token('your_users_3_legged_token', 
+        'your_users_3_legged_token_secret')
+
+    # Setup the URL according to Google's XOAUTH implementation. Be sure
+    # to replace the email here with the appropriate email address that
+    # you wish to access.
+    url = "https://mail.google.com/mail/b/your_users_email@gmail.com/imap/"
+
+    conn = imaplib.IMAP4_SSL('imap.googlemail.com')
+    conn.debug = 4 
+
+    # This is the only thing in the API for impaplib.IMAP4_SSL that has 
+    # changed. You now authenticate with the URL, consumer, and token.
+    conn.authenticate(url, consumer, token)
+
+    # Once authenticated everything from the impalib.IMAP4_SSL class will 
+    # work as per usual without any modification to your code.
+    conn.select('INBOX')
+    print conn.list()
+
+
+## SMTP
+
+    import oauth2 as oauth
+    import oauth2.clients.smtp as smtplib
+
+    # Set up your Consumer and Token as per usual. Just like any other
+    # three-legged OAuth request.
+    consumer = oauth.Consumer('your_consumer_key', 'your_consumer_secret')
+    token = oauth.Token('your_users_3_legged_token', 
+        'your_users_3_legged_token_secret')
+
+    # Setup the URL according to Google's XOAUTH implementation. Be sure
+    # to replace the email here with the appropriate email address that
+    # you wish to access.
+    url = "https://mail.google.com/mail/b/your_users_email@gmail.com/smtp/"
+
+    conn = smtplib.SMTP('smtp.googlemail.com', 587)
+    conn.set_debuglevel(True)
+    conn.ehlo('test')
+    conn.starttls()
+
+    # Again the only thing modified from smtplib.SMTP is the authenticate
+    # method, which works identically to the imaplib.IMAP4_SSL method.
+    conn.authenticate(url, consumer, token)
+
+

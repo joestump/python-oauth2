@@ -1,7 +1,7 @@
 """
 The MIT License
 
-Copyright (c) 2007 Leah Culver, Joe Stump, Mark Paschal, Vic Fryzel
+Copyright (c) 2007-2010 Leah Culver, Joe Stump, Mark Paschal, Vic Fryzel
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@ except ImportError:
     from cgi import parse_qs, parse_qsl
 
 
-VERSION = '1.0' # Hi Blaine!
+VERSION = '1.0'  # Hi Blaine!
 HTTP_METHOD = 'GET'
 SIGNATURE_METHOD = 'PLAINTEXT'
 
@@ -55,8 +55,10 @@ class Error(RuntimeError):
     def __str__(self):
         return self._message
 
+
 class MissingSignature(Error):
     pass
+
 
 def build_authenticate_header(realm=''):
     """Optional WWW-Authenticate header (401 error)"""
@@ -65,17 +67,17 @@ def build_authenticate_header(realm=''):
 
 def build_xoauth_string(url, consumer, token=None):
     """Build an XOAUTH string for use in SMTP/IMPA authentication."""
-    request = Request.from_consumer_and_token(consumer, token, 
+    request = Request.from_consumer_and_token(consumer, token,
         "GET", url)
 
     signing_method = SignatureMethod_HMAC_SHA1()
     request.sign_request(signing_method, consumer, token)
 
     params = []
-    for k,v in sorted(request.iteritems()):
+    for k, v in sorted(request.iteritems()):
         if v is not None:
             params.append('%s="%s"' % (k, escape(v)))
-                                                                                
+
     return "%s %s %s" % ("GET", url, ','.join(params))
 
 
@@ -130,10 +132,8 @@ class Consumer(object):
             raise ValueError("Key and secret must be set.")
 
     def __str__(self):
-        data = {
-            'oauth_consumer_key': self.key,
-            'oauth_consumer_secret': self.secret
-        }
+        data = {'oauth_consumer_key': self.key,
+            'oauth_consumer_secret': self.secret}
 
         return urllib.urlencode(data)
 
@@ -232,7 +232,7 @@ class Token(object):
         try:
             token.callback_confirmed = params['oauth_callback_confirmed'][0]
         except KeyError:
-            pass # 1.0, no callback confirmed.
+            pass  # 1.0, no callback confirmed.
         return token
 
     def __str__(self):
@@ -714,6 +714,7 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
         # Calculate the digest base 64.
         return binascii.b2a_base64(hashed.digest())[:-1]
 
+
 class SignatureMethod_PLAINTEXT(SignatureMethod):
 
     name = 'PLAINTEXT'
@@ -729,4 +730,3 @@ class SignatureMethod_PLAINTEXT(SignatureMethod):
     def sign(self, request, consumer, token):
         key, raw = self.signing_base(request, consumer, token)
         return raw
-

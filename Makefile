@@ -20,5 +20,5 @@ sdist:
 	python setup.py sdist
 
 clean:
-	rm -rf dist
+	rm -rf dist && rm -fr *.egg && find . -name \*.pyc -print -delete
 	$(ROOTCMD) debian/rules clean

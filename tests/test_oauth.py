@@ -46,12 +46,19 @@ class TestError(unittest.TestCase):
         try:
             raise oauth.Error
         except oauth.Error, e:
-            self.assertEqual(e.message, 'OAuth error occured.')
+            self.assertEqual(e.message, 'OAuth error occurred.')
+
         msg = 'OMG THINGS BROKE!!!!'
         try:
             raise oauth.Error(msg)
         except oauth.Error, e:
             self.assertEqual(e.message, msg)
+
+    def test_str(self):
+        try:
+            raise oauth.Error
+        except oauth.Error, e:
+            self.assertEquals(str(e), 'OAuth error occurred.')
 
 class TestGenerateFunctions(unittest.TestCase):
     def test_build_auth_header(self):
@@ -63,6 +70,28 @@ class TestGenerateFunctions(unittest.TestCase):
         self.assertEqual(header['WWW-Authenticate'], 'OAuth realm="%s"' %
                          realm)
         self.assertEqual(len(header), 1)
+
+    def test_build_xoauth_string(self):
+        consumer = oauth.Consumer('consumer_token', 'consumer_secret')
+        token = oauth.Token('user_token', 'user_secret')
+        url = "https://mail.google.com/mail/b/joe@example.com/imap/"
+        xoauth_string = oauth.build_xoauth_string(url, consumer, token)
+
+        method, oauth_url, oauth_string = xoauth_string.split(' ')
+
+        self.assertEqual("GET", method)
+        self.assertEqual(url, oauth_url)
+
+        returned = {}
+        parts = oauth_string.split(',')
+        for part in parts:
+            var, val = part.split('=')
+            returned[var] = val.strip('"') 
+
+        self.assertEquals('HMAC-SHA1', returned['oauth_signature_method'])
+        self.assertEquals('user_token', returned['oauth_token'])
+        self.assertEquals('consumer_token', returned['oauth_consumer_key'])
+        self.assertTrue('oauth_signature' in returned, 'oauth_signature')
 
     def test_escape(self):
         string = 'http://whatever.com/~someuser/?test=test&other=other'

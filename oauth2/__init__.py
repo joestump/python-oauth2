@@ -44,7 +44,7 @@ SIGNATURE_METHOD = 'PLAINTEXT'
 class Error(RuntimeError):
     """Generic exception class."""
 
-    def __init__(self, message='OAuth error occured.'):
+    def __init__(self, message='OAuth error occurred.'):
         self._message = message
 
     @property

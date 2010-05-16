@@ -16,6 +16,9 @@ deb: debian/changelog dist
 	dpkg-buildpackage -r$(ROOTCMD) -us -uc
 	mv ../python-oauth2_* dist/
 
+test:
+	python setup.py test --with-coverage --cover-package=oauth2
+
 sdist:
 	python setup.py sdist
 

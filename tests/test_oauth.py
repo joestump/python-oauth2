@@ -21,9 +21,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-import sys, os
-sys.path[0:0] = [os.path.join(os.path.dirname(__file__), ".."),]
-
+import sys
+import os
 import unittest
 import oauth2 as oauth
 import random
@@ -39,6 +38,9 @@ try:
     from urlparse import parse_qs, parse_qsl
 except ImportError:
     from cgi import parse_qs, parse_qsl
+
+
+sys.path[0:0] = [os.path.join(os.path.dirname(__file__), ".."),]
 
 
 class TestError(unittest.TestCase):
@@ -283,6 +285,38 @@ class TestRequest(unittest.TestCase):
         self.assertEquals(req.normalized_url, exp2)
         self.assertEquals(req.url, url2)
 
+    def test_bad_url(self):
+        request = oauth.Request()
+        try:
+            request.url = "ftp://example.com"
+            self.fail("Invalid URL scheme was accepted.")
+        except ValueError:
+            pass
+
+    def test_unset_consumer_and_token(self):
+        consumer = oauth.Consumer('my_consumer_key', 'my_consumer_secret')
+        token = oauth.Token('my_key', 'my_secret')
+        request = oauth.Request("GET", "http://example.com/fetch.php")
+        request.sign_request(oauth.SignatureMethod_HMAC_SHA1(), consumer,
+            token)
+
+        self.assertEquals(consumer.key, request['oauth_consumer_key'])
+        self.assertEquals(token.key, request['oauth_token'])
+
+    def test_no_url_set(self):
+        consumer = oauth.Consumer('my_consumer_key', 'my_consumer_secret')
+        token = oauth.Token('my_key', 'my_secret')
+        request = oauth.Request()
+
+        try:
+            try:
+                request.sign_request(oauth.SignatureMethod_HMAC_SHA1(), 
+                    consumer, token)
+            except TypeError:
+                self.fail("Signature method didn't check for a normalized URL.")
+        except ValueError:
+            pass
+
     def test_url_query(self):
         url = "https://www.google.com/m8/feeds/contacts/default/full/?alt=json&max-contacts=10"
         normalized_url = urlparse.urlunparse(urlparse.urlparse(url)[:3] + (None, None, None))
@@ -495,6 +529,23 @@ class TestRequest(unittest.TestCase):
         del foo["oauth_signature"]
         self.assertEqual(urllib.urlencode(sorted(foo.items())), res)
 
+    def test_set_signature_method(self):
+        consumer = oauth.Consumer('key', 'secret')
+        client = oauth.Client(consumer)
+
+        class Blah:
+            pass
+
+        try:
+            client.set_signature_method(Blah())
+            self.fail("Client.set_signature_method() accepted invalid method.")
+        except ValueError:
+            pass
+
+        m = oauth.SignatureMethod_HMAC_SHA1()
+        client.set_signature_method(m)
+        self.assertEquals(m, client.method)
+
     def test_get_normalized_string_escapes_spaces_properly(self):
         url = "http://sp.example.com/"
         params = {
@@ -604,12 +655,14 @@ class TestRequest(unittest.TestCase):
         url = "http://sp.example.com/"
 
         tok = oauth.Token(key="tok-test-key", secret="tok-test-secret")
+        tok.set_verifier('this_is_a_test_verifier')
         con = oauth.Consumer(key="con-test-key", secret="con-test-secret")
         req = oauth.Request.from_consumer_and_token(con, token=tok,
             http_method="GET", http_url=url)
 
         self.assertEquals(req['oauth_token'], tok.key)
         self.assertEquals(req['oauth_consumer_key'], con.key)
+        self.assertEquals(tok.verifier, req['oauth_verifier'])
 
 class SignatureMethod_Bad(oauth.SignatureMethod):
     name = "BAD"
@@ -681,6 +734,13 @@ class TestServer(unittest.TestCase):
         self.assertEquals(parameters['bar'], 'blerg')
         self.assertEquals(parameters['foo'], 59)
         self.assertEquals(parameters['multi'], ['FOO','BAR'])
+
+    def test_build_authenticate_header(self):
+        server = oauth.Server()
+        headers = server.build_authenticate_header('example.com')
+        self.assertTrue('WWW-Authenticate' in headers)
+        self.assertEquals('OAuth realm="example.com"', 
+            headers['WWW-Authenticate'])
 
     def test_no_version(self):
         url = "http://sp.example.com/"
@@ -860,6 +920,23 @@ class TestClient(unittest.TestCase):
         items += ['', '--'+boundary+'--', '']
         content_type = 'multipart/form-data; boundary=%s' % boundary
         return content_type, crlf.join(items)
+
+    def test_init(self):
+        class Blah():
+            pass
+
+        try:
+            client = oauth.Client(Blah())
+            self.fail("Client.__init__() accepted invalid Consumer.")
+        except ValueError:
+            pass
+
+        consumer = oauth.Consumer('token', 'secret')
+        try:
+            client = oauth.Client(consumer, Blah())
+            self.fail("Client.__init__() accepted invalid Token.")
+        except ValueError:
+            pass
 
     def test_access_token_get(self):
         """Test getting an access token via GET."""

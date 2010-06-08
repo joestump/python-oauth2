@@ -325,7 +325,7 @@ class Request(dict):
         # tell urlencode to deal with sequence values and map them correctly
         # to resulting querystring. for example self["k"] = ["v1", "v2"] will
         # result in 'k=v1&k=v2' and not k=%5B%27v1%27%2C+%27v2%27%5D
-        return urllib.urlencode(self, True)
+        return urllib.urlencode(self, True).replace('+', '%20')
  
     def to_url(self):
         """Serialize as a URL for a GET request."""

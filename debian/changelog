@@ -1,3 +1,13 @@
+python-oauth2 (1.2.1pre1) unstable; urgency=low
+
+  * Make a native package.
+  * Increment version.
+  * Make debian/rules executable.
+  * Update standards-version, maintainers.
+  * Remvoe unneeded python-central build dependency.
+
+ -- Ian Eure <ian@simplegeo.com>  Fri, 11 Jun 2010 16:09:01 -0700
+
 python-oauth2 (1.0.0-1simplegeo01) karmic; urgency=low
 
   * Initial build for SimpleGeo

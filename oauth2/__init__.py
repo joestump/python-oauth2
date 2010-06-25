@@ -369,7 +369,7 @@ class Request(dict):
         # spec draft 7, section 3.6
         # (http://tools.ietf.org/html/draft-hammer-oauth-07#section-3.6)
         # Spaces must be encoded with "%20" instead of "+"
-        return encoded_str.replace('+', '%20')
+        return encoded_str.replace('+', '%20').replace('%7E', '~')
  
     def sign_request(self, signature_method, consumer, token):
         """Set the signature parameter to the result of sign."""

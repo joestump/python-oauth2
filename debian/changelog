@@ -1,3 +1,42 @@
+python-oauth2 (1.2.1) lucid; urgency=low
+
+  [ Joe Stump ]
+  * Fixed a minor spelling error, added tests for
+    oauth2.Error.__str__(), and added a test for build_xoauth_string().
+  * Added a 'make test' command to the Makefile.
+  * Added a bunch of new tests. 100% coverage has lapsed a bit. Fixing
+    now.
+
+  [ Ian Eure ]
+  * Update deb rule in makefile to sign packages and move them to
+    dist/deb.
+
+  [ Joe Stump ]
+  * Implemented a 'fix' for a bug in certain OAuth providers.
+    http://bit.ly/aUrH43
+
+  [ Ian Eure ]
+  * Update packaging.
+  * Fix version disparity.
+
+  [ coulix ]
+  * get normalised parameters should not take into account oauth_ params
+
+  [ Mathias Herberts ]
+  * Modified get_normalized_parameters so it does not encode '~' for
+    full conformance with RFC 5849 section 3.6
+
+  [ Peter Bengtsson ]
+  * made it python 2.4 compatible
+
+  [ Roderic Campbell ]
+  * tok != token. con != consumer. May be confusing for people not
+    actually reading the code.
+
+  [ Ian Eure ]
+
+ -- Ian Eure <ian@simplegeo.com>  Mon, 28 Jun 2010 12:02:02 -0700
+
 python-oauth2 (1.2.1pre2) unstable; urgency=low
 
   * Fix version disparity between setup.py & debian/changelog.

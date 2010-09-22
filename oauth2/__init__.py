@@ -548,7 +548,16 @@ class Client(httplib2.Http):
             DEFAULT_CONTENT_TYPE) != DEFAULT_CONTENT_TYPE
 
         if body and method == "POST" and not is_multipart:
-            parameters = dict(parse_qsl(body))
+            param_tuples = parse_qsl(body)
+            parameters = {}
+            for key, value in param_tuples:
+                if key in parameters:
+                    if isinstance(parameters[key], list):
+                        parameters[key].append(value)
+                    else:
+                        parameters[key] = [parameters[key], value]
+                else:
+                    parameters[key] = value
         else:
             parameters = None
 

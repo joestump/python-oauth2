@@ -1029,6 +1029,28 @@ class TestClient(unittest.TestCase):
         client.request(uri, 'GET')
         self.mox.VerifyAll()
 
+    def test_multiple_values_for_a_key(self):
+        self.mox.StubOutWithMock(httplib2.Http, 'request')
+
+        client = oauth.Client(self.consumer, None)
+        uri = self._uri('two_legged')
+        body = 'multi=1&multi=2'
+
+        expected_kwargs = {
+            'method':'POST', 
+            'redirections':httplib2.DEFAULT_MAX_REDIRECTS,
+            'connection_type':None,
+            'headers':mox.IsA(dict),
+        }
+        def query_dict_verifier(query_str):
+            query = parse_qs(query_str)
+            return query['multi'] == ['1', '2']
+        httplib2.Http.request(client, uri, body=mox.Func(query_dict_verifier), **expected_kwargs).AndReturn(None)
+
+        self.mox.ReplayAll()
+        result = client.request(uri, 'POST', body=body)
+        self.mox.VerifyAll()
+
 if __name__ == "__main__":
     unittest.main()
 

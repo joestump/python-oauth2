@@ -528,6 +528,12 @@ class TestRequest(unittest.TestCase):
         foo = params.copy()
         del foo["oauth_signature"]
         self.assertEqual(urllib.urlencode(sorted(foo.items())), res)
+        
+    def test_signature_base_string_with_matrix_params(self):
+        url = "http://social.yahooapis.com/v1/user/6677/connections;start=0;count=20"
+        req = oauth.Request("GET", url, None)
+        self.assertEquals(req.normalized_url, 'http://social.yahooapis.com/v1/user/6677/connections;start=0;count=20')
+        self.assertEquals(req.url, 'http://social.yahooapis.com/v1/user/6677/connections;start=0;count=20')
 
     def test_set_signature_method(self):
         consumer = oauth.Consumer('key', 'secret')

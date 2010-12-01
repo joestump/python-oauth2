@@ -664,6 +664,58 @@ class TestRequest(unittest.TestCase):
         self.assertEquals(req['oauth_consumer_key'], con.key)
         self.assertEquals(tok.verifier, req['oauth_verifier'])
 
+class TestRSASignature(unittest.TestCase):
+
+    def setUp(self):
+        from Crypto.PublicKey import RSA
+        self.RSA = RSA
+        key=RSA.importKey('''-----BEGIN RSA PRIVATE KEY-----
+MIIBOgIBAAJBAM7B+5TJsc93ymBSFtC5DE1qDlqvwio0xDfS6bZQTfFiHLm8pHXg
+Atkm7QB6gvyRKm+a/G3qEbmBdz21Fw0RLJsCAwEAAQJAS68qnr5uPlnFVRj3jRQP
+8s6dzoiD9Ns38I9eSgR/Y5ozl8r/cClLeGWvDKfXvrxlsaMuqWLZ5KMtamaRS9Fl
+sQIhAPmOY+s5ZxsYtem+Uc2IUGexNoP/Ng7MPS3C+Q3L6K4nAiEA1Biv6i7TqAbx
+oHulPIXb2Z9JmO46aT81n9WnD1qyim0CIF9eN/cLf8iOH+7MqYxHHJsT0QaOgEUV
+bgfP68eG9kufAiEAtUSAHGp29HUyzxC9sNNKiVysnuqDu22NXBRSmjnOu6UCIEFZ
+nqb0GVzfF6wbsf40mkp1kdHq/fNiFRrLYWWJSpGY
+-----END RSA PRIVATE KEY-----''')
+        self.method = oauth.SignatureMethod_RSA_SHA1()
+        self.tok = oauth.Token(key="tok-test-key", secret="tok-test-secret")
+        self.con = oauth.Consumer(key="con-test-key", secret=key)
+        self.url = "http://sp.example.com/"
+
+        self.params = {
+            'oauth_version': "1.0",
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': "137131200",
+            'oauth_token': self.tok.key,
+            'oauth_consumer_key': self.con.key,
+            'bar': 'blerg',
+            'multi': ['FOO','BAR'],
+            'foo': 59
+        }
+
+    def test_sign(self):
+        req = oauth.Request(method="GET", url=self.url, parameters=self.params)
+        req.sign_request(self.method, self.con, self.tok)
+        self.assertEquals(req['oauth_signature_method'], 'RSA-SHA1')
+        self.assertEquals(req['oauth_signature'], 'D2rdx9TiFajZbXChqMca6eaal8FxZhLMU1bdNX0glIN+BT4nrYGJqmIW92kWZYEYKHsVz7e67oDBEYlIIQMKWg==')
+
+    def test_verify(self):
+        self.params['oauth_timestamp'] = int(time.time())
+        req = oauth.Request(method="GET", url=self.url, parameters=self.params)
+        server = oauth.Server()
+        server.add_signature_method(self.method)
+
+        req.sign_request(self.method, self.con, self.tok)
+        parameters = server.verify_request(req, self.con,self.tok)
+
+        self.assertTrue('bar' in parameters)
+        self.assertTrue('foo' in parameters)
+        self.assertTrue('multi' in parameters)
+        self.assertEquals(parameters['bar'], 'blerg')
+        self.assertEquals(parameters['foo'], 59)
+        self.assertEquals(parameters['multi'], ['FOO','BAR'])
+
 class SignatureMethod_Bad(oauth.SignatureMethod):
     name = "BAD"
 

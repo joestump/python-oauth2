@@ -5,7 +5,7 @@ Maintainer: SimpleGeo Nerds <nerds@simplegeo.com>
 Uploaders: Chris Lea <chris.lea@gmail.com>, Ian Eure <ian@simplegeo.com>
 Standards-Version: 3.8.4
 XS-Python-Version: all
-Build-Depends: debhelper (>= 4.1.13), cdbs (>= 0.4.49), python, python-setuptools, python-support
+Build-Depends: debhelper (>= 4.1.13), cdbs (>= 0.4.49), python, python-setuptools, python-support, pyflakes
 Homepage: http://github.com/simplegeo/python-oauth2
 
 Package: python-oauth2

@@ -30,11 +30,14 @@ import hmac
 import binascii
 import httplib2
 
-try:
-    from urlparse import parse_qs, parse_qsl
-except ImportError:
-    from cgi import parse_qs, parse_qsl
+from urlparse import parse_qs, parse_qsl
 
+try:
+    from hashlib import sha1
+    sha = sha1
+except ImportError:
+    # hashlib was added in Python 2.5
+    import sha
 
 import _version
 
@@ -602,7 +605,6 @@ class Server(object):
     def verify_request(self, request, consumer, token):
         """Verifies an api call and checks all the parameters."""
 
-        version = self._get_version(request)
         self._check_signature(request, consumer, token)
         parameters = request.get_nonoauth_parameters()
         return parameters
@@ -661,7 +663,7 @@ class Server(object):
             raise Error('Invalid signature. Expected signature base ' 
                 'string: %s' % base)
 
-        built = signature_method.sign(request, consumer, token)
+        signature_method.sign(request, consumer, token)
 
     def _check_timestamp(self, timestamp):
         """Verify that timestamp is recentish."""
@@ -732,12 +734,6 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
     def sign(self, request, consumer, token):
         """Builds the base signature string."""
         key, raw = self.signing_base(request, consumer, token)
-
-        # HMAC object.
-        try:
-            from hashlib import sha1 as sha
-        except ImportError:
-            import sha # Deprecated
 
         hashed = hmac.new(key, raw, sha)
 

@@ -29,4 +29,5 @@ setup(name=PKG,
       license = "MIT License",
       keywords="oauth",
       zip_safe = True,
-      tests_require=['nose', 'coverage', 'mox'])
+      test_suite="tests",
+      tests_require=['coverage', 'mox'])

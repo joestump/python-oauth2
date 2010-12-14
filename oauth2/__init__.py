@@ -36,7 +36,11 @@ except ImportError:
     from cgi import parse_qs, parse_qsl
 
 
-VERSION = '1.0'  # Hi Blaine!
+import _version
+
+__version__ = _version.__version__
+
+OAUTH_VERSION = '1.0'  # Hi Blaine!
 HTTP_METHOD = 'GET'
 SIGNATURE_METHOD = 'PLAINTEXT'
 
@@ -266,7 +270,7 @@ class Request(dict):
  
     """
  
-    version = VERSION
+    version = OAUTH_VERSION
  
     def __init__(self, method=HTTP_METHOD, url=None, parameters=None):
         self.method = method
@@ -585,7 +589,7 @@ class Server(object):
     """
 
     timestamp_threshold = 300 # In seconds, five minutes.
-    version = VERSION
+    version = OAUTH_VERSION
     signature_methods = None
 
     def __init__(self, signature_methods=None):
@@ -612,7 +616,7 @@ class Server(object):
         try:
             version = request.get_parameter('oauth_version')
         except:
-            version = VERSION
+            version = OAUTH_VERSION
 
         if version and version != self.version:
             raise Error('OAuth version %s not supported.' % str(version))

@@ -922,8 +922,6 @@ class TestClient(unittest.TestCase):
         return content_type, crlf.join(items)
 
     def test_init(self):
-        raise Exception("Whoops this is in error. Now please report this to me.")
-
         class Blah():
             pass
 

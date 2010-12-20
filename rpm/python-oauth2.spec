@@ -21,7 +21,7 @@ BuildRequires:  python-setuptools-devel
 %else
 BuildRequires:  python-setuptools
 %endif
-Requires:       python-httplib2
+Requires:       python-httplib2, python-simplejson
 
 %description
 This code was originally forked from Leah Culver and Andy Smith's oauth.py code.

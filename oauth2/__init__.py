@@ -605,6 +605,7 @@ class Server(object):
     def verify_request(self, request, consumer, token):
         """Verifies an api call and checks all the parameters."""
 
+        self._check_version(request)
         self._check_signature(request, consumer, token)
         parameters = request.get_nonoauth_parameters()
         return parameters
@@ -613,15 +614,18 @@ class Server(object):
         """Optional support for the authenticate header."""
         return {'WWW-Authenticate': 'OAuth realm="%s"' % realm}
 
+    def _check_version(self, request):
+        """Verify the correct version of the request for this server."""
+        version = self._get_version(request)
+        if version and version != self.version:
+            raise Error('OAuth version %s not supported.' % str(version))
+
     def _get_version(self, request):
-        """Verify the correct version request for this server."""
+        """Return the version of the request for this server."""
         try:
             version = request.get_parameter('oauth_version')
         except:
             version = OAUTH_VERSION
-
-        if version and version != self.version:
-            raise Error('OAuth version %s not supported.' % str(version))
 
         return version
 

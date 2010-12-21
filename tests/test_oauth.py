@@ -30,7 +30,7 @@ import time
 import urllib
 import urlparse
 from types import ListType
-import mox
+import mock
 import httplib2
 
 # Fix for python2.5 compatibility
@@ -796,8 +796,7 @@ class TestServer(unittest.TestCase):
         server = oauth.Server()
         server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
 
-        self.assertRaises(oauth.Error, server.verify_request, request,
-            consumer, token)
+        self.assertRaises(oauth.Error, server.verify_request, request, consumer, token)
 
     def test_invalid_signature_method(self):
         url = "http://sp.example.com/"
@@ -885,7 +884,6 @@ class TestClient(unittest.TestCase):
     host = 'http://oauth-sandbox.sevengoslings.net'
 
     def setUp(self):
-        self.mox = mox.Mox()
         self.consumer = oauth.Consumer(key=self.consumer_key,
             secret=self.consumer_secret)
 
@@ -895,9 +893,6 @@ class TestClient(unittest.TestCase):
             'multi': ['FOO','BAR'],
             'blah': 599999
         }
-
-    def tearDown(self):
-        self.mox.UnsetStubs()
 
     def _uri(self, type):
         uri = self.oauth_uris.get(type)
@@ -973,8 +968,8 @@ class TestClient(unittest.TestCase):
         resp, content = self._two_legged("GET")
         self.assertEquals(int(resp['status']), 200)
 
-    def test_multipart_post_does_not_alter_body(self):
-        self.mox.StubOutWithMock(httplib2.Http, 'request')
+    @mock.patch('httplib2.Http.request')
+    def test_multipart_post_does_not_alter_body(self, mockHttpRequest):
         random_result = random.randint(1,100)
 
         data = {
@@ -985,49 +980,53 @@ class TestClient(unittest.TestCase):
         client = oauth.Client(self.consumer, None)
         uri = self._uri('two_legged')
 
-        expected_kwargs = {
-            'method':'POST',
-            'body':body,
-            'redirections':httplib2.DEFAULT_MAX_REDIRECTS,
-            'connection_type':None,
-            'headers':mox.IsA(dict),
-        }
-        httplib2.Http.request(client, uri, **expected_kwargs).AndReturn(random_result)
+        def mockrequest(cl, ur, **kw):
+            self.failUnless(cl is client)
+            self.failUnless(ur is uri)
+            self.failUnlessEqual(frozenset(kw.keys()), frozenset(['method', 'body', 'redirections', 'connection_type', 'headers']))
+            self.failUnlessEqual(kw['body'], body)
+            self.failUnlessEqual(kw['connection_type'], None)
+            self.failUnlessEqual(kw['method'], 'POST')
+            self.failUnlessEqual(kw['redirections'], httplib2.DEFAULT_MAX_REDIRECTS)
+            self.failUnless(isinstance(kw['headers'], dict))
 
-        self.mox.ReplayAll()
+            return random_result
+
+        mockHttpRequest.side_effect = mockrequest
+
         result = client.request(uri, 'POST', headers={'Content-Type':content_type}, body=body)
         self.assertEqual(result, random_result)
-        self.mox.VerifyAll()
 
-    def test_url_with_query_string(self):
-        self.mox.StubOutWithMock(httplib2.Http, 'request')
+    @mock.patch('httplib2.Http.request')
+    def test_url_with_query_string(self, mockHttpRequest):
         uri = 'http://example.com/foo/bar/?show=thundercats&character=snarf'
         client = oauth.Client(self.consumer, None)
-        expected_kwargs = {
-            'method': 'GET',
-            'body': None,
-            'redirections': httplib2.DEFAULT_MAX_REDIRECTS,
-            'connection_type': None,
-            'headers': mox.IsA(dict),
-        }
-        def oauth_verifier(url):
+        random_result = random.randint(1,100)
+
+        def mockrequest(cl, ur, **kw):
+            self.failUnless(cl is client)
+            self.failUnless(ur is uri)
+            self.failUnlessEqual(frozenset(kw.keys()), frozenset(['method', 'body', 'redirections', 'connection_type', 'headers']))
+            self.failUnlessEqual(kw['body'], None)
+            self.failUnlessEqual(kw['connection_type'], None)
+            self.failUnlessEqual(kw['method'], 'GET')
+            self.failUnlessEqual(kw['redirections'], httplib2.DEFAULT_MAX_REDIRECTS)
+            self.failUnless(isinstance(kw['headers'], dict))
+
             req = oauth.Request.from_consumer_and_token(self.consumer, None,
                     http_method='GET', http_url=uri, parameters={})
             req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), self.consumer, None)
             expected = parse_qsl(urlparse.urlparse(req.to_url()).query)
             actual = parse_qsl(urlparse.urlparse(url).query)
-            if len(expected) != len(actual):
-                return False
+            self.failUnlessEqual(len(expected), len(actual))
             actual = dict(actual)
             for key, value in expected:
                 if key not in ('oauth_signature', 'oauth_nonce', 'oauth_timestamp'):
-                    if actual[key] != value:
-                        return False
-            return True
-        httplib2.Http.request(client, mox.Func(oauth_verifier), **expected_kwargs)
-        self.mox.ReplayAll()
+                    self.failUnlessEqual(actual[key], value)
+
+            return random_result
+
         client.request(uri, 'GET')
-        self.mox.VerifyAll()
 
 if __name__ == "__main__":
     unittest.main()

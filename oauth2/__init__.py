@@ -535,8 +535,7 @@ class Client(httplib2.Http):
         self.token = token
         self.method = SignatureMethod_HMAC_SHA1()
 
-        httplib2.Http.__init__(self, cache=cache, timeout=timeout, 
-            proxy_info=proxy_info)
+        httplib2.Http.__init__(self, cache=cache, timeout=timeout, proxy_info=proxy_info)
 
     def set_signature_method(self, method):
         if not isinstance(method, SignatureMethod):
@@ -666,8 +665,6 @@ class Server(object):
 
             raise Error('Invalid signature. Expected signature base ' 
                 'string: %s' % base)
-
-        signature_method.sign(request, consumer, token)
 
     def _check_timestamp(self, timestamp):
         """Verify that timestamp is recentish."""

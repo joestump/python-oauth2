@@ -29,8 +29,12 @@ import urlparse
 import hmac
 import binascii
 import httplib2
+import sys
 
-from urlparse import parse_qs, parse_qsl
+if sys.version_info[0:2] <= (2, 5):
+    from cgi import parse_qs, parse_qsl
+else:
+    from urlparse import parse_qs, parse_qsl
 
 try:
     from hashlib import sha1

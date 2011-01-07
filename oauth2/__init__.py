@@ -544,7 +544,7 @@ class Client(httplib2.Http):
         self.method = method
 
     def request(self, uri, method="GET", body=None, headers=None, 
-        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
+        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None, call_back=None):
         DEFAULT_CONTENT_TYPE = 'application/x-www-form-urlencoded'
 
         if not isinstance(headers, dict):
@@ -555,6 +555,8 @@ class Client(httplib2.Http):
 
         if body and method == "POST" and not is_multipart:
             parameters = dict(parse_qsl(body))
+        elif method=='GET' and call_back!=None:
+            parameters={'oauth_callback':call_back}
         else:
             parameters = None
 

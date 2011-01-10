@@ -88,17 +88,19 @@ def build_xoauth_string(url, consumer, token=None):
     return "%s %s %s" % ("GET", url, ','.join(params))
 
 
-def check_for_bad_encoding(s):
-    """ Raise exception with instructive error message if s is not unicode or ascii. """
+def to_unicode(s):
+    """ Convert to unicode, raise exception with instructive error
+    message if s is not unicode or ascii. """
     if not isinstance(s, unicode):
         try:
-            s.decode('ascii')
+            s = s.decode('ascii')
         except UnicodeDecodeError, le:
             raise TypeError('You are required to pass either a unicode object or an ascii string here. You passed a Python string object which contained non-ascii: %r. The UnicodeDecodeError that resulted from attempting to interpret it as ascii was: %s' % (s, le,))
+    return s
 
 def escape(s):
     """Escape a URL including any /."""
-    check_for_bad_encoding(s)
+    s = to_unicode(s)
     return urllib.quote(s.encode('utf-8'), safe='~')
 
 def generate_timestamp():
@@ -285,7 +287,7 @@ class Request(dict):
  
     def __init__(self, method=HTTP_METHOD, url=None, parameters=None):
         if url is not None:
-            check_for_bad_encoding(url)
+            url = to_unicode(url)
             self.url = unicode(url)
         self.method = method
         if parameters is not None:

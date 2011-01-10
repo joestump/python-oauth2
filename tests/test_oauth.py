@@ -253,8 +253,8 @@ class TestRequest(unittest.TestCase):
         url = "http://example.com"
         method = "GET"
         req = oauth.Request(method)
-        self.assertTrue(req.url is None)
-        self.assertTrue(req.normalized_url is None)
+        self.assertTrue(not hasattr(req, 'url') or req.url is None)
+        self.assertTrue(not hasattr(req, 'normalized_url') or req.normalized_url is None)
 
     def test_deleter(self):
         url = "http://example.com"
@@ -557,6 +557,24 @@ class TestRequest(unittest.TestCase):
         res = req.get_normalized_parameters()
         expected = urllib.urlencode(sorted(params.items())).replace('+', '%20')
         self.assertEqual(expected, res)
+
+    def test_request_nonascii_bytes(self):
+        # If someone has a sequence of bytes which is not ascii, we'll
+        # raise an exception as early as possible.
+        url = "http://sp.example.com/\x92"
+
+        params = {
+            'oauth_version': "1.0",
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': "137131200"
+        }
+
+        tok = oauth.Token(key="tok-test-key", secret="tok-test-secret")
+        con = oauth.Consumer(key="con-test-key", secret="con-test-secret")
+
+        params['oauth_token'] = tok.key
+        params['oauth_consumer_key'] = con.key
+        self.assertRaises(TypeError, oauth.Request, method="GET", url=url, parameters=params)
 
     def test_sign_request(self):
         url = "http://sp.example.com/"

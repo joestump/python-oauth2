@@ -92,6 +92,8 @@ def to_unicode(s):
     """ Convert to unicode, raise exception with instructive error
     message if s is not unicode or ascii. """
     if not isinstance(s, unicode):
+        if not isinstance(s, str):
+            raise TypeError('You are required to pass either unicode or string here, not: %r (%s)' % (type(s), s))
         try:
             s = s.decode('ascii')
         except UnicodeDecodeError, le:

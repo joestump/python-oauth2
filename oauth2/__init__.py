@@ -88,10 +88,22 @@ def build_xoauth_string(url, consumer, token=None):
     return "%s %s %s" % ("GET", url, ','.join(params))
 
 
+def to_unicode(s):
+    """ Convert to unicode, raise exception with instructive error
+    message if s is not unicode or ascii. """
+    if not isinstance(s, unicode):
+        if not isinstance(s, str):
+            raise TypeError('You are required to pass either unicode or string here, not: %r (%s)' % (type(s), s))
+        try:
+            s = s.decode('ascii')
+        except UnicodeDecodeError, le:
+            raise TypeError('You are required to pass either a unicode object or an ascii string here. You passed a Python string object which contained non-ascii: %r. The UnicodeDecodeError that resulted from attempting to interpret it as ascii was: %s' % (s, le,))
+    return s
+
 def escape(s):
     """Escape a URL including any /."""
-    return urllib.quote(s, safe='~')
-
+    s = to_unicode(s)
+    return urllib.quote(s.encode('utf-8'), safe='~')
 
 def generate_timestamp():
     """Get seconds since epoch (UTC)."""
@@ -276,8 +288,9 @@ class Request(dict):
     version = OAUTH_VERSION
  
     def __init__(self, method=HTTP_METHOD, url=None, parameters=None):
+        if url is not None:
+            self.url = to_unicode(url)
         self.method = method
-        self.url = url
         if parameters is not None:
             self.update(parameters)
  
@@ -717,7 +730,7 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
     name = 'HMAC-SHA1'
         
     def signing_base(self, request, consumer, token):
-        if request.normalized_url is None:
+        if not hasattr(request, 'normalized_url') or request.normalized_url is None:
             raise ValueError("Base URL for request is not set.")
 
         sig = (

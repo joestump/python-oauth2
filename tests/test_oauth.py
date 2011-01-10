@@ -249,12 +249,14 @@ class TestToken(unittest.TestCase):
         self._compare_tokens(new)
 
 class TestRequest(unittest.TestCase):
+    # def test_split(self):
+        # r = 253G
     def test_setter(self):
         url = "http://example.com"
         method = "GET"
         req = oauth.Request(method)
-        self.assertTrue(req.url is None)
-        self.assertTrue(req.normalized_url is None)
+        self.assertTrue(not hasattr(req, 'url') or req.url is None)
+        self.assertTrue(not hasattr(req, 'normalized_url') or req.normalized_url is None)
 
     def test_deleter(self):
         url = "http://example.com"
@@ -574,7 +576,7 @@ class TestRequest(unittest.TestCase):
 
         params['oauth_token'] = tok.key
         params['oauth_consumer_key'] = con.key
-        self.assertRaises(ValueError, oauth.Request, method="GET", url=url, parameters=params)
+        self.assertRaises(TypeError, oauth.Request, method="GET", url=url, parameters=params)
 
     def test_sign_request(self):
         url = "http://sp.example.com/"

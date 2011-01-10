@@ -89,21 +89,17 @@ def build_xoauth_string(url, consumer, token=None):
 
 
 def check_for_bad_encoding(s):
-    """ Returns None if s is a unicode or an ascii string, else
-    returns the UnicodeDecodeError that results from attempting to
-    decode it as ascii. """
-    try:
-        s.decode('ascii')
-    except UnicodeDecodeError, le:
-        return le
+    """ Raise exception with instructive error message if s is not unicode or ascii. """
+    if not isinstance(s, unicode):
+        try:
+            s.decode('ascii')
+        except UnicodeDecodeError, le:
+            raise TypeError('You are required to pass either a unicode object or an ascii string here. You passed a Python string object which contained non-ascii: %r. The UnicodeDecodeError that resulted from attempting to interpret it as ascii was: %s' % (s, le,))
 
 def escape(s):
     """Escape a URL including any /."""
-    encerr = check_for_bad_encoding(s)
-    if encerr:
-        raise Error('You are required to pass either a unicode object or an ascii string here. You passed a Python string object which contained non-ascii: %r. The UnicodeDecodeError that resulted from attempting to interpret it as ascii was: %s' % (encerr,))
+    check_for_bad_encoding(s)
     return urllib.quote(s.encode('utf-8'), safe='~')
-
 
 def generate_timestamp():
     """Get seconds since epoch (UTC)."""
@@ -288,11 +284,10 @@ class Request(dict):
     version = OAUTH_VERSION
  
     def __init__(self, method=HTTP_METHOD, url=None, parameters=None):
-        encerr = check_for_bad_encoding(url)
-        if encerr:
-            raise ValueError("You are required to pass either a unicode object or an ascii string for `url'. You passed a Python string object which contained non-ascii: %r. The UnicodeDecodeError that resulted from attempting to interpret it as ascii was: %s" % (url, encerr,))
+        if url is not None:
+            check_for_bad_encoding(url)
+            self.url = unicode(url)
         self.method = method
-        self.url = unicode(url)
         if parameters is not None:
             self.update(parameters)
  
@@ -732,7 +727,7 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
     name = 'HMAC-SHA1'
         
     def signing_base(self, request, consumer, token):
-        if request.normalized_url is None:
+        if not hasattr(request, 'normalized_url') or request.normalized_url is None:
             raise ValueError("Base URL for request is not set.")
 
         sig = (
@@ -750,7 +745,6 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
     def sign(self, request, consumer, token):
         """Builds the base signature string."""
         key, raw = self.signing_base(request, consumer, token)
-        print "raw: type: %s, str: %s, repr: %s, hexbytes: %s" % (type(raw), str(raw), repr(raw), ["0x%x" % ord(c) for c in raw])
 
         hashed = hmac.new(key, raw, sha)
 

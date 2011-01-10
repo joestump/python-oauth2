@@ -289,8 +289,7 @@ class Request(dict):
  
     def __init__(self, method=HTTP_METHOD, url=None, parameters=None):
         if url is not None:
-            url = to_unicode(url)
-            self.url = unicode(url)
+            self.url = to_unicode(url)
         self.method = method
         if parameters is not None:
             self.update(parameters)

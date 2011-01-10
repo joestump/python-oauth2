@@ -249,8 +249,6 @@ class TestToken(unittest.TestCase):
         self._compare_tokens(new)
 
 class TestRequest(unittest.TestCase):
-    # def test_split(self):
-        # r = 253G
     def test_setter(self):
         url = "http://example.com"
         method = "GET"

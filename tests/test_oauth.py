@@ -558,6 +558,24 @@ class TestRequest(unittest.TestCase):
         expected = urllib.urlencode(sorted(params.items())).replace('+', '%20')
         self.assertEqual(expected, res)
 
+    def test_request_nonascii_bytes(self):
+        # If someone has a sequence of bytes which is not ascii, we'll
+        # raise an exception as early as possible.
+        url = "http://sp.example.com/\x92"
+
+        params = {
+            'oauth_version': "1.0",
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': "137131200"
+        }
+
+        tok = oauth.Token(key="tok-test-key", secret="tok-test-secret")
+        con = oauth.Consumer(key="con-test-key", secret="con-test-secret")
+
+        params['oauth_token'] = tok.key
+        params['oauth_consumer_key'] = con.key
+        self.assertRaises(ValueError, oauth.Request, method="GET", url=url, parameters=params)
+
     def test_sign_request(self):
         url = "http://sp.example.com/"
 

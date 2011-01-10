@@ -88,9 +88,21 @@ def build_xoauth_string(url, consumer, token=None):
     return "%s %s %s" % ("GET", url, ','.join(params))
 
 
+def check_for_bad_encoding(s):
+    """ Returns None if s is a unicode or an ascii string, else
+    returns the UnicodeDecodeError that results from attempting to
+    decode it as ascii. """
+    try:
+        s.decode('ascii')
+    except UnicodeDecodeError, le:
+        return le
+
 def escape(s):
     """Escape a URL including any /."""
-    return urllib.quote(s, safe='~')
+    encerr = check_for_bad_encoding(s)
+    if encerr:
+        raise Error('You are required to pass either a unicode object or an ascii string here. You passed a Python string object which contained non-ascii: %r. The UnicodeDecodeError that resulted from attempting to interpret it as ascii was: %s' % (encerr,))
+    return urllib.quote(s.encode('utf-8'), safe='~')
 
 
 def generate_timestamp():
@@ -276,8 +288,11 @@ class Request(dict):
     version = OAUTH_VERSION
  
     def __init__(self, method=HTTP_METHOD, url=None, parameters=None):
+        encerr = check_for_bad_encoding(url)
+        if encerr:
+            raise ValueError("You are required to pass either a unicode object or an ascii string for `url'. You passed a Python string object which contained non-ascii: %r. The UnicodeDecodeError that resulted from attempting to interpret it as ascii was: %s" % (url, encerr,))
         self.method = method
-        self.url = url
+        self.url = unicode(url)
         if parameters is not None:
             self.update(parameters)
  
@@ -735,6 +750,7 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
     def sign(self, request, consumer, token):
         """Builds the base signature string."""
         key, raw = self.signing_base(request, consumer, token)
+        print "raw: type: %s, str: %s, repr: %s, hexbytes: %s" % (type(raw), str(raw), repr(raw), ["0x%x" % ord(c) for c in raw])
 
         hashed = hmac.new(key, raw, sha)
 

@@ -1,3 +1,29 @@
+python-oauth2 (1.3.128) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * raise an exception if the URL passed in is not a unicode object nor
+    ascii We can't submit a correct URL with arbitrary bytes -- we have
+    to submit a utf-8 encoded unicode string. (Otherwise we'll cause
+    either a rejection or a signature mismatch in the server, which is
+    what has happened at SimpleGeo.) If the caller passes in non-ascii
+    things in a str then it would be better for them to change their
+    code to decode it to unicode before passing it in than for us to
+    decode it, since they have a better chance of knowing what encoding
+    it is in -- if we did it we would be guessing.
+  * fix flaws pointed out by ieure, plus test failures I'm not entirely
+    sure it is appropriate to allow .url and .normalized_url to be non-
+    existent in addition to allowing them to be None, but I don't really
+    understand the intent of the url setter.
+  * Oh, after we've made sure it can be converted to unicode, just leave
+    it as a unicode object after that.
+  * raise more specific error message if argument to to_unicode() is
+    neither unicode nor str
+  * a couple of cleanups suggested by ieure in code review
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Mon, 10 Jan 2011 22:42:35 +0000
+
 python-oauth2 (1.3.127) lucid; urgency=low
 
   [ Zooko Ofsimplegeo ]

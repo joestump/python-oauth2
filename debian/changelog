@@ -1,3 +1,62 @@
+python-oauth2 (1.3.128) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * raise an exception if the URL passed in is not a unicode object nor
+    ascii We can't submit a correct URL with arbitrary bytes -- we have
+    to submit a utf-8 encoded unicode string. (Otherwise we'll cause
+    either a rejection or a signature mismatch in the server, which is
+    what has happened at SimpleGeo.) If the caller passes in non-ascii
+    things in a str then it would be better for them to change their
+    code to decode it to unicode before passing it in than for us to
+    decode it, since they have a better chance of knowing what encoding
+    it is in -- if we did it we would be guessing.
+  * fix flaws pointed out by ieure, plus test failures I'm not entirely
+    sure it is appropriate to allow .url and .normalized_url to be non-
+    existent in addition to allowing them to be None, but I don't really
+    understand the intent of the url setter.
+  * Oh, after we've made sure it can be converted to unicode, just leave
+    it as a unicode object after that.
+  * raise more specific error message if argument to to_unicode() is
+    neither unicode nor str
+  * a couple of cleanups suggested by ieure in code review
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Mon, 10 Jan 2011 22:42:35 +0000
+
+python-oauth2 (1.3.127) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * run tests when building
+  * raise exception from a test just to see if hudson is *really*
+    running these tests. I don't see the test results.
+  * put version number in a file where it can be read and written by
+    various things (including hudson)
+  * make oauth2.__version__ exist, rename VERSION to OAUTH_VERSION for
+    clarity
+  * debian/control -- build-dep pyflakes
+  * fix pyflakes
+  * build-dep requires python-coverage
+  * switch from nosetests to the builtin test runner Just because it
+    doesn't seem to currently use any feature of nosetest and this way
+    we can reduce the dependencies by one. We'll feel free to switch it
+    back to using nosetests (and add the dep to debian/control this
+    time) if we want to use some extra feature of nose.
+  * remove test failure which was inserted just to see if hudson was
+    running the tests properly
+  * Fix bug inserted by pyflakes inspired cleanup earlier -- it turns
+    out that _get_version() wasn't dead code but was having a necessary
+    side-effect. Add new method named _check_version() to be clearer
+    about what it does compared to _get_version()
+  * port tests from mox to mock because they were failing and I don't
+    understand mox. now they are working. add mock to the python and
+    debian deps. remove apparently left-over line of code that runs
+    "sign()" at the end of checking a signature
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Tue, 04 Jan 2011 19:39:34 +0000
+
 python-oauth2 (1.2.1) lucid; urgency=low
 
   [ Joe Stump ]

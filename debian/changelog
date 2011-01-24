@@ -1,3 +1,25 @@
+python-oauth2 (1.4.134) lucid; urgency=low
+
+  * UNRELEASED
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Mon, 24 Jan 2011 18:30:58 +0000
+
+python-oauth2 (1.4.133) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * handle unicode objects and utf-8 strings in url and params and
+    encode them to utf-8 when serializing
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Mon, 24 Jan 2011 18:25:54 +0000
+
+python-oauth2 (1.4.132) lucid; urgency=low
+
+  * UNRELEASED
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Mon, 24 Jan 2011 17:39:52 +0000
+
 python-oauth2 (1.4.131) lucid; urgency=low
 
   * UNRELEASED

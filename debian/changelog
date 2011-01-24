@@ -1,3 +1,12 @@
+python-oauth2 (1.5.145) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * update version number from 1.4 to 1.5
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Mon, 24 Jan 2011 22:08:36 +0000
+
 python-oauth2 (1.4.144) lucid; urgency=low
 
   [ Zooko Ofsimplegeo ]

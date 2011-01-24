@@ -90,15 +90,46 @@ def build_xoauth_string(url, consumer, token=None):
 
 def to_unicode(s):
     """ Convert to unicode, raise exception with instructive error
-    message if s is not unicode or ascii. """
+    message if s is not unicode, ascii, or utf-8. """
     if not isinstance(s, unicode):
         if not isinstance(s, str):
             raise TypeError('You are required to pass either unicode or string here, not: %r (%s)' % (type(s), s))
         try:
-            s = s.decode('ascii')
+            s = s.decode('utf-8')
         except UnicodeDecodeError, le:
-            raise TypeError('You are required to pass either a unicode object or an ascii string here. You passed a Python string object which contained non-ascii: %r. The UnicodeDecodeError that resulted from attempting to interpret it as ascii was: %s' % (s, le,))
+            raise TypeError('You are required to pass either a unicode object or a utf-8 string here. You passed a Python string object which contained non-utf-8: %r. The UnicodeDecodeError that resulted from attempting to interpret it as utf-8 was: %s' % (s, le,))
     return s
+
+def to_utf8(s):
+    return to_unicode(s).encode('utf-8')
+
+def to_unicode_if_string(s):
+    if isinstance(s, basestring):
+        return to_unicode(s)
+    else:
+        return s
+
+def to_utf8_if_string(s):
+    if isinstance(s, basestring):
+        return to_utf8(s)
+    else:
+        return s
+
+def to_unicode_optional_iterator(x):
+    """
+    Raise TypeError if x is a str containing non-utf8 bytes or if x is
+    an iterable which contains such a str.
+    """
+    if isinstance(x, basestring):
+        return to_unicode(x)
+
+    try:
+        l = list(x)
+    except TypeError, e:
+        assert 'is not iterable' in str(e)
+        return x
+    else:
+            return [ to_unicode(e) for e in l ]
 
 def escape(s):
     """Escape a URL including any /."""
@@ -292,8 +323,12 @@ class Request(dict):
             self.url = to_unicode(url)
         self.method = method
         if parameters is not None:
-            self.update(parameters)
- 
+            for k, v in parameters.iteritems():
+                k = to_unicode(k)
+                v = to_unicode_optional_iterator(v)
+                self[k] = v
+
+
     @setter
     def url(self, value):
         self.__dict__['url'] = value
@@ -383,7 +418,7 @@ class Request(dict):
             raise Error('Parameter not found: %s' % parameter)
 
         return ret
- 
+
     def get_normalized_parameters(self):
         """Return a string that contains the parameters that must be signed."""
         items = []
@@ -392,16 +427,22 @@ class Request(dict):
                 continue
             # 1.0a/9.1.1 states that kvp must be sorted by key, then by value,
             # so we unpack sequence values into multiple items for sorting.
-            if hasattr(value, '__iter__'):
-                items.extend((key, item) for item in value)
+            if isinstance(value, basestring):
+                items.append((to_utf8_if_string(key), to_utf8(value)))
             else:
-                items.append((key, value))
+                try:
+                    value = list(value)
+                except TypeError, e:
+                    assert 'is not iterable' in str(e)
+                    items.append((to_utf8_if_string(key), to_utf8_if_string(value)))
+                else:
+                    items.extend((to_utf8_if_string(key), to_utf8_if_string(item)) for item in value)
 
         # Include any query string parameters from the provided URL
         query = urlparse.urlparse(self.url)[4]
-        
+
         url_items = self._split_url_string(query).items()
-        non_oauth_url_items = list([(k, v) for k, v in url_items  if not k.startswith('oauth_')])
+        non_oauth_url_items = list([(to_utf8(k), to_utf8(v)) for k, v in url_items  if not k.startswith('oauth_')])
         items.extend(non_oauth_url_items)
 
         encoded_str = urllib.urlencode(sorted(items))
@@ -410,7 +451,7 @@ class Request(dict):
         # (http://tools.ietf.org/html/draft-hammer-oauth-07#section-3.6)
         # Spaces must be encoded with "%20" instead of "+"
         return encoded_str.replace('+', '%20').replace('%7E', '~')
- 
+
     def sign_request(self, signature_method, consumer, token):
         """Set the signature parameter to the result of sign."""
 

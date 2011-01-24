@@ -248,7 +248,24 @@ class TestToken(unittest.TestCase):
         new = oauth.Token.from_string(string)
         self._compare_tokens(new)
 
-class TestRequest(unittest.TestCase):
+class ReallyEqualMixin:
+    def failUnlessReallyEqual(self, a, b, msg=None):
+        self.failUnlessEqual(a, b, msg=msg)
+        self.failUnlessEqual(type(a), type(b), msg="a :: %r, b :: %r, %r" % (a, b, msg))
+
+class TestFuncs(unittest.TestCase):
+    def test_to_unicode(self):
+        self.failUnlessRaises(TypeError, oauth.to_unicode, '\xae')
+        self.failUnlessRaises(TypeError, oauth.to_unicode_optional_iterator, '\xae')
+        self.failUnlessRaises(TypeError, oauth.to_unicode_optional_iterator, ['\xae'])
+
+        self.failUnlessEqual(oauth.to_unicode(':-)'), u':-)')
+        self.failUnlessEqual(oauth.to_unicode(u'\u00ae'), u'\u00ae')
+        self.failUnlessEqual(oauth.to_unicode('\xc2\xae'), u'\u00ae')
+        self.failUnlessEqual(oauth.to_unicode_optional_iterator([':-)']), [u':-)'])
+        self.failUnlessEqual(oauth.to_unicode_optional_iterator([u'\u00ae']), [u'\u00ae'])
+
+class TestRequest(unittest.TestCase, ReallyEqualMixin):
     def test_setter(self):
         url = "http://example.com"
         method = "GET"
@@ -342,9 +359,11 @@ class TestRequest(unittest.TestCase):
         }
 
         other_params = {
-            'foo': 'baz',
-            'bar': 'foo',
-            'multi': ['FOO','BAR']
+            u'foo': u'baz',
+            u'bar': u'foo',
+            u'multi': [u'FOO',u'BAR'],
+            u'uni_utf8': u'\xae',
+            u'uni_unicode': u'\u00ae'
         }
 
         params = oauth_params
@@ -461,6 +480,24 @@ class TestRequest(unittest.TestCase):
         self.assertEquals(b['max-contacts'], ['10'])
         self.assertEquals(a, b)
 
+    def test_signature_base_string_nonascii(self):
+        consumer = oauth.Consumer('consumer_token', 'consumer_secret')
+
+        url = "http://api.simplegeo.com:80/1.0/places/address.json?q=monkeys&category=animal&address=41+Decatur+St%2C+San+Francisc%E2%9D%A6%2C+CA"
+        req = oauth.Request("GET", url)
+        self.failUnlessReallyEqual(req.normalized_url, u'http://api.simplegeo.com/1.0/places/address.json')
+        self.assertEquals(req.url, u'http://api.simplegeo.com:80/1.0/places/address.json?q=monkeys&category=animal&address=41+Decatur+St%2C+San+Francisc%E2%9D%A6%2C+CA')
+        req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), consumer, None)
+
+    def test_signature_base_string_nonascii_nonutf8(self):
+        consumer = oauth.Consumer('consumer_token', 'consumer_secret')
+
+        url = "http://api.simplegeo.com:80/1.0/places/address.json?q=monkeys&category=animal&address=41+Decatur+St%2C+San+Francisc%E2%9D%A6%2C+CA"
+        req = oauth.Request("GET", url)
+        self.failUnlessReallyEqual(req.normalized_url, u'http://api.simplegeo.com/1.0/places/address.json')
+        self.assertEquals(req.url, u'http://api.simplegeo.com:80/1.0/places/address.json?q=monkeys&category=animal&address=41+Decatur+St%2C+San+Francisc%E2%9D%A6%2C+CA')
+        req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), consumer, None)
+
     def test_signature_base_string_with_query(self):
         url = "https://www.google.com/m8/feeds/contacts/default/full/?alt=json&max-contacts=10"
         params = {
@@ -495,16 +532,18 @@ class TestRequest(unittest.TestCase):
             'oauth_consumer_key': "0685bd9184jfhq22",
             'oauth_signature_method': "HMAC-SHA1",
             'oauth_token': "ad180jjd733klru7",
-            'multi': ['FOO','BAR'],
+            'multi': ['FOO','BAR', u'\u00ae', '\xc2\xae'],
+            'uni_utf8': '\xc2\xae',
+            'uni_unicode': u'\u00ae'
         }
 
         req = oauth.Request("GET", url, params)
 
         res = req.get_normalized_parameters()
-        
-        srtd = [(k, v if type(v) != ListType else sorted(v)) for k,v in sorted(params.items())]
 
-        self.assertEquals(urllib.urlencode(srtd, True), res)
+        expected='multi=BAR&multi=FOO&multi=%C2%AE&multi=%C2%AE&oauth_consumer_key=0685bd9184jfhq22&oauth_nonce=4572616e48616d6d65724c61686176&oauth_signature_method=HMAC-SHA1&oauth_timestamp=137131200&oauth_token=ad180jjd733klru7&oauth_version=1.0&uni_unicode=%C2%AE&uni_utf8=%C2%AE'
+
+        self.assertEquals(expected, res)
 
     def test_get_normalized_parameters_ignores_auth_signature(self):
         url = "http://sp.example.com/"
@@ -558,23 +597,62 @@ class TestRequest(unittest.TestCase):
         expected = urllib.urlencode(sorted(params.items())).replace('+', '%20')
         self.assertEqual(expected, res)
 
-    def test_request_nonascii_bytes(self):
-        # If someone has a sequence of bytes which is not ascii, we'll
-        # raise an exception as early as possible.
-        url = "http://sp.example.com/\x92"
-
-        params = {
-            'oauth_version': "1.0",
-            'oauth_nonce': "4572616e48616d6d65724c61686176",
-            'oauth_timestamp': "137131200"
-        }
+    @mock.patch('oauth2.Request.make_timestamp')
+    @mock.patch('oauth2.Request.make_nonce')
+    def test_request_nonascii_bytes(self, mock_make_nonce, mock_make_timestamp):
+        mock_make_nonce.return_value = 5
+        mock_make_timestamp.return_value = 6
 
         tok = oauth.Token(key="tok-test-key", secret="tok-test-secret")
         con = oauth.Consumer(key="con-test-key", secret="con-test-secret")
+        params = {
+            'oauth_version': "1.0",
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': "137131200",
+            'oauth_token': tok.key,
+            'oauth_consumer_key': con.key
+        }
 
-        params['oauth_token'] = tok.key
-        params['oauth_consumer_key'] = con.key
+        # If someone passes a sequence of bytes which is not ascii for
+        # url, we'll raise an exception as early as possible.
+        url = "http://sp.example.com/\x92" # It's actually cp1252-encoding...
         self.assertRaises(TypeError, oauth.Request, method="GET", url=url, parameters=params)
+
+        # And if they pass an unicode, then we'll use it.
+        url = u'http://sp.example.com/\u2019'
+        req = oauth.Request(method="GET", url=url, parameters=params)
+        req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, None)
+        self.failUnlessReallyEqual(req['oauth_signature'], '/DgF7cY2friC01cmOAFdu8S0z+A=')
+
+        # And if it is a utf-8-encoded-then-percent-encoded non-ascii
+        # thing, we'll decode it and use it.
+        url = "http://sp.example.com/%E2%80%99"
+        req = oauth.Request(method="GET", url=url, parameters=params)
+        req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, None)
+        self.failUnlessReallyEqual(req['oauth_signature'], 'anzjnpdqCUJWvePgDiwMb7Q8g28=')
+
+        # Same thing with the params.
+        url = "http://sp.example.com/"
+
+        # If someone passes a sequence of bytes which is not ascii in
+        # params, we'll raise an exception as early as possible.
+        params['non_oauth_thing'] = '\xae', # It's actually cp1252-encoding...
+        self.assertRaises(TypeError, oauth.Request, method="GET", url=url, parameters=params)
+
+        # And if they pass a unicode, then we'll use it.
+        params['non_oauth_thing'] = u'\u2019'
+        req = oauth.Request(method="GET", url=url, parameters=params)
+        req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, None)
+        self.failUnlessReallyEqual(req['oauth_signature'], 'QcgQMe9XzNxDWpechlQKFCd2orw=')
+
+        # And if it is a utf-8-encoded non-ascii thing, we'll decode
+        # it and use it.
+        params['non_oauth_thing'] = '\xc2\xae'
+        req = oauth.Request(method="GET", url=url, parameters=params)
+        req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, None)
+        self.failUnlessReallyEqual(req['oauth_signature'], 'OuMkgNFhlgcmEA1gIMII7aWLDgE=')
+
+
 
     def test_sign_request(self):
         url = "http://sp.example.com/"

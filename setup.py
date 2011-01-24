@@ -10,13 +10,20 @@ try:
 except EnvironmentError:
     pass # Okay, there is no version file.
 else:
-    VSRE = r"^verstr = ['\"]([^'\"]*)['\"]"
-    mo = re.search(VSRE, verstrline, re.M)
+    MVSRE = r"^manual_verstr *= *['\"]([^'\"]*)['\"]"
+    mo = re.search(MVSRE, verstrline, re.M)
     if mo:
-        verstr = mo.group(1)
+        mverstr = mo.group(1)
     else:
         print "unable to find version in %s" % (VERSIONFILE,)
         raise RuntimeError("if %s.py exists, it must be well-formed" % (VERSIONFILE,))
+    AVSRE = r"^auto_build_num *= *['\"]([^'\"]*)['\"]"
+    mo = re.search(AVSRE, verstrline, re.M)
+    if mo:
+        averstr = mo.group(1)
+    else:
+        averstr = ''
+    verstr = '.'.join([mverstr, averstr])
 
 setup(name=PKG,
       version=verstr,

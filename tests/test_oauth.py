@@ -533,15 +533,15 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
             'oauth_signature_method': "HMAC-SHA1",
             'oauth_token': "ad180jjd733klru7",
             'multi': ['FOO','BAR', u'\u00ae', '\xc2\xae'],
-            'uni_utf8': '\xc2\xae',
-            'uni_unicode': u'\u00ae'
+            'uni_utf8_bytes': '\xc2\xae',
+            'uni_unicode_object': u'\u00ae'
         }
 
         req = oauth.Request("GET", url, params)
 
         res = req.get_normalized_parameters()
 
-        expected='multi=BAR&multi=FOO&multi=%C2%AE&multi=%C2%AE&oauth_consumer_key=0685bd9184jfhq22&oauth_nonce=4572616e48616d6d65724c61686176&oauth_signature_method=HMAC-SHA1&oauth_timestamp=137131200&oauth_token=ad180jjd733klru7&oauth_version=1.0&uni_unicode=%C2%AE&uni_utf8=%C2%AE'
+        expected='multi=BAR&multi=FOO&multi=%C2%AE&multi=%C2%AE&oauth_consumer_key=0685bd9184jfhq22&oauth_nonce=4572616e48616d6d65724c61686176&oauth_signature_method=HMAC-SHA1&oauth_timestamp=137131200&oauth_token=ad180jjd733klru7&oauth_version=1.0&uni_unicode_object=%C2%AE&uni_utf8_bytes=%C2%AE'
 
         self.assertEquals(expected, res)
 
@@ -599,7 +599,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
     @mock.patch('oauth2.Request.make_timestamp')
     @mock.patch('oauth2.Request.make_nonce')
-    def test_request_nonascii_bytes(self, mock_make_nonce, mock_make_timestamp):
+    def test_request_nonutf8_bytes(self, mock_make_nonce, mock_make_timestamp):
         mock_make_nonce.return_value = 5
         mock_make_timestamp.return_value = 6
 
@@ -653,6 +653,9 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         self.failUnlessReallyEqual(req['oauth_signature'], 'OuMkgNFhlgcmEA1gIMII7aWLDgE=')
 
 
+        # Also if there are non-utf8 bytes in the query args.
+        url = "http://sp.example.com/?q=\x92" # cp1252
+        self.assertRaises(TypeError, oauth.Request, method="GET", url=url, parameters=params)
 
     def test_sign_request(self):
         url = "http://sp.example.com/"
@@ -673,12 +676,34 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         methods = {
             'TQ6vGQ5A6IZn8dmeGB4+/Jl3EMI=': oauth.SignatureMethod_HMAC_SHA1(),
             'con-test-secret&tok-test-secret': oauth.SignatureMethod_PLAINTEXT()
-        }
+            }
 
         for exp, method in methods.items():
             req.sign_request(method, con, tok)
             self.assertEquals(req['oauth_signature_method'], method.name)
             self.assertEquals(req['oauth_signature'], exp)
+
+        # Also if there are non-ascii chars in the URL.
+        url = "http://sp.example.com/\xe2\x80\x99" # utf-8 bytes
+        req = oauth.Request(method="GET", url=url, parameters=params)
+        req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, tok)
+        self.assertEquals(req['oauth_signature'], 'KagU7uiAAEvkZEzej2fcbyRXtzo=')
+
+        url = u'http://sp.example.com/\u2019' # Python unicode object
+        req = oauth.Request(method="GET", url=url, parameters=params)
+        req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, tok)
+        self.assertEquals(req['oauth_signature'], 'KagU7uiAAEvkZEzej2fcbyRXtzo=')
+
+        # Also if there are non-ascii chars in the query args.
+        url = "http://sp.example.com/?q=\xe2\x80\x99" # utf-8 bytes
+        req = oauth.Request(method="GET", url=url, parameters=params)
+        req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, tok)
+        self.assertEquals(req['oauth_signature'], '5hyI7ovTVkcCyLeOKYzugnIvseo=')
+
+        url = u'http://sp.example.com/?q=\u2019' # Python unicode object
+        req = oauth.Request(method="GET", url=url, parameters=params)
+        req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, tok)
+        self.assertEquals(req['oauth_signature'], '5hyI7ovTVkcCyLeOKYzugnIvseo=')
 
     def test_from_request(self):
         url = "http://sp.example.com/"

@@ -445,7 +445,8 @@ class Request(dict):
         non_oauth_url_items = list([(to_utf8(k), to_utf8(v)) for k, v in url_items  if not k.startswith('oauth_')])
         items.extend(non_oauth_url_items)
 
-        encoded_str = urllib.urlencode(sorted(items))
+        items.sort()
+        encoded_str = urllib.urlencode(items)
         # Encode signature parameters per Oauth Core 1.0 protocol
         # spec draft 7, section 3.6
         # (http://tools.ietf.org/html/draft-hammer-oauth-07#section-3.6)

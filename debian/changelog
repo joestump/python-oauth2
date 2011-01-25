@@ -1,3 +1,13 @@
+python-oauth2 (1.5.147) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * pass the body and the is_form_encoding flag in to the Request object
+    (for future use in implementing the hash-of-body extension)
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Tue, 25 Jan 2011 17:39:34 +0000
+
 python-oauth2 (1.5.146) lucid; urgency=low
 
   [ Zooko Ofsimplegeo ]

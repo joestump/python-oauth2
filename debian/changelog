@@ -1,3 +1,13 @@
+python-oauth2 (1.5.146) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * refactor internals of the way Client.request() decides whether this
+    is a x-www-form-urlencoded request or not
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Tue, 25 Jan 2011 17:30:38 +0000
+
 python-oauth2 (1.5.145) lucid; urgency=low
 
   [ Zooko Ofsimplegeo ]

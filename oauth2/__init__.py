@@ -317,8 +317,9 @@ class Request(dict):
     """
  
     version = OAUTH_VERSION
- 
-    def __init__(self, method=HTTP_METHOD, url=None, parameters=None):
+
+    def __init__(self, method=HTTP_METHOD, url=None, parameters=None,
+                 body=None, is_form_encoded=False):
         if url is not None:
             self.url = to_unicode(url)
         self.method = method
@@ -327,6 +328,8 @@ class Request(dict):
                 k = to_unicode(k)
                 v = to_unicode_optional_iterator(v)
                 self[k] = v
+        self.body = body
+        self.is_form_encoded = is_form_encoded
 
 
     @setter
@@ -513,7 +516,8 @@ class Request(dict):
  
     @classmethod
     def from_consumer_and_token(cls, consumer, token=None,
-            http_method=HTTP_METHOD, http_url=None, parameters=None):
+            http_method=HTTP_METHOD, http_url=None, parameters=None,
+            body=None, is_form_encoded=False):
         if not parameters:
             parameters = {}
  
@@ -532,7 +536,8 @@ class Request(dict):
             if token.verifier:
                 parameters['oauth_verifier'] = token.verifier
  
-        return Request(http_method, http_url, parameters)
+        return Request(http_method, http_url, parameters, body=body, 
+                       is_form_encoded=is_form_encoded)
  
     @classmethod
     def from_token_and_callback(cls, token, callback=None, 
@@ -619,15 +624,12 @@ class Client(httplib2.Http):
 
         req = Request.from_consumer_and_token(self.consumer, 
             token=self.token, http_method=method, http_url=uri, 
-            parameters=parameters)
+            parameters=parameters, body=body, is_form_encoded=is_form_encoded)
 
         req.sign_request(self.method, self.consumer, self.token)
 
-        if method == "POST":
-            if is_form_encoded:
-                body = req.to_postdata()
-            else:
-                headers.update(req.to_header())
+        if is_form_encoded:
+            body = req.to_postdata()
         elif method == "GET":
             uri = req.to_url()
         else:

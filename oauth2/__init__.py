@@ -22,6 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
+import base64
 import urllib
 import time
 import random
@@ -458,6 +459,14 @@ class Request(dict):
 
     def sign_request(self, signature_method, consumer, token):
         """Set the signature parameter to the result of sign."""
+
+        if not self.is_form_encoded:
+            # according to
+            # http://oauth.googlecode.com/svn/spec/ext/body_hash/1.0/oauth-bodyhash.html
+            # section 4.1.1 "OAuth Consumers MUST NOT include an
+            # oauth_body_hash parameter on requests with form-encoded
+            # request bodies."
+            self['oauth_body_hash'] = base64.b64encode(sha(self.body).digest())
 
         if 'oauth_consumer_key' not in self:
             self['oauth_consumer_key'] = consumer.key

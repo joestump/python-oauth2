@@ -622,14 +622,14 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         url = u'http://sp.example.com/\u2019'
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, None)
-        self.failUnlessReallyEqual(req['oauth_signature'], '/DgF7cY2friC01cmOAFdu8S0z+A=')
+        self.failUnlessReallyEqual(req['oauth_signature'], 'cMzvCkhvLL57+sTIxLITTHfkqZk=')
 
         # And if it is a utf-8-encoded-then-percent-encoded non-ascii
         # thing, we'll decode it and use it.
         url = "http://sp.example.com/%E2%80%99"
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, None)
-        self.failUnlessReallyEqual(req['oauth_signature'], 'anzjnpdqCUJWvePgDiwMb7Q8g28=')
+        self.failUnlessReallyEqual(req['oauth_signature'], 'yMLKOyNKC/DkyhUOb8DLSvceEWE=')
 
         # Same thing with the params.
         url = "http://sp.example.com/"
@@ -643,19 +643,73 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         params['non_oauth_thing'] = u'\u2019'
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, None)
-        self.failUnlessReallyEqual(req['oauth_signature'], 'QcgQMe9XzNxDWpechlQKFCd2orw=')
+        self.failUnlessReallyEqual(req['oauth_signature'], '0GU50m0v60CVDB5JnoBXnvvvKx4=')
 
         # And if it is a utf-8-encoded non-ascii thing, we'll decode
         # it and use it.
         params['non_oauth_thing'] = '\xc2\xae'
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, None)
-        self.failUnlessReallyEqual(req['oauth_signature'], 'OuMkgNFhlgcmEA1gIMII7aWLDgE=')
+        self.failUnlessReallyEqual(req['oauth_signature'], 'pqOCu4qvRTiGiXB8Z61Jsey0pMM=')
 
 
         # Also if there are non-utf8 bytes in the query args.
         url = "http://sp.example.com/?q=\x92" # cp1252
         self.assertRaises(TypeError, oauth.Request, method="GET", url=url, parameters=params)
+
+    def test_request_hash_of_body(self):
+        tok = oauth.Token(key="token", secret="tok-test-secret")
+        con = oauth.Consumer(key="consumer", secret="con-test-secret")
+
+        # Example 1a from Appendix A.1 of
+        # http://oauth.googlecode.com/svn/spec/ext/body_hash/1.0/oauth-bodyhash.html
+        # Except that we get a differetn result than they do.
+
+        params = {
+            'oauth_version': "1.0",
+            'oauth_token': tok.key,
+            'oauth_nonce': 10288510250934,
+            'oauth_timestamp': 1236874155,
+            'oauth_consumer_key': con.key
+        }
+
+        url = u"http://www.example.com/resource"
+        req = oauth.Request(method="PUT", url=url, parameters=params, body="Hello World!", is_form_encoded=False)
+        req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, None)
+        self.failUnlessReallyEqual(req['oauth_body_hash'], 'Lve95gjOVATpfV8EL5X4nxwjKHE=')
+        self.failUnlessReallyEqual(req['oauth_signature'], 't+MX8l/0S8hdbVQL99nD0X1fPnM=')
+        # oauth-bodyhash.html A.1 has
+        # '08bUFF%2Fjmp59mWB7cSgCYBUpJ0U%3D', but I don't see how that
+        # is possible.
+
+        # Example 1b
+        params = {
+            'oauth_version': "1.0",
+            'oauth_token': tok.key,
+            'oauth_nonce': 10369470270925,
+            'oauth_timestamp': 1236874236,
+            'oauth_consumer_key': con.key
+        }
+
+        req = oauth.Request(method="PUT", url=url, parameters=params, body="Hello World!", is_form_encoded=False)
+        req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, None)
+        self.failUnlessReallyEqual(req['oauth_body_hash'], 'Lve95gjOVATpfV8EL5X4nxwjKHE=')
+        self.failUnlessReallyEqual(req['oauth_signature'], 'CTFmrqJIGT7NsWJ42OrujahTtTc=')
+
+        # Appendix A.2
+        params = {
+            'oauth_version': "1.0",
+            'oauth_token': tok.key,
+            'oauth_nonce': 8628868109991,
+            'oauth_timestamp': 1238395022,
+            'oauth_consumer_key': con.key
+        }
+
+        req = oauth.Request(method="GET", url=url, parameters=params, is_form_encoded=False)
+        req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, None)
+        self.failUnlessReallyEqual(req['oauth_body_hash'], '2jmj7l5rSw0yVb/vlWAYkK/YBwk=')
+        self.failUnlessReallyEqual(req['oauth_signature'], 'Zhl++aWSP0O3/hYQ0CuBc7jv38I=')
+
 
     def test_sign_request(self):
         url = "http://sp.example.com/"
@@ -674,7 +728,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         req = oauth.Request(method="GET", url=url, parameters=params)
 
         methods = {
-            'TQ6vGQ5A6IZn8dmeGB4+/Jl3EMI=': oauth.SignatureMethod_HMAC_SHA1(),
+            'DX01TdHws7OninCLK9VztNTH1M4=': oauth.SignatureMethod_HMAC_SHA1(),
             'con-test-secret&tok-test-secret': oauth.SignatureMethod_PLAINTEXT()
             }
 
@@ -687,23 +741,23 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         url = "http://sp.example.com/\xe2\x80\x99" # utf-8 bytes
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, tok)
-        self.assertEquals(req['oauth_signature'], 'KagU7uiAAEvkZEzej2fcbyRXtzo=')
+        self.assertEquals(req['oauth_signature'], 'loFvp5xC7YbOgd9exIO6TxB7H4s=')
 
         url = u'http://sp.example.com/\u2019' # Python unicode object
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, tok)
-        self.assertEquals(req['oauth_signature'], 'KagU7uiAAEvkZEzej2fcbyRXtzo=')
+        self.assertEquals(req['oauth_signature'], 'loFvp5xC7YbOgd9exIO6TxB7H4s=')
 
         # Also if there are non-ascii chars in the query args.
         url = "http://sp.example.com/?q=\xe2\x80\x99" # utf-8 bytes
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, tok)
-        self.assertEquals(req['oauth_signature'], '5hyI7ovTVkcCyLeOKYzugnIvseo=')
+        self.assertEquals(req['oauth_signature'], 'IBw5mfvoCsDjgpcsVKbyvsDqQaU=')
 
         url = u'http://sp.example.com/?q=\u2019' # Python unicode object
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, tok)
-        self.assertEquals(req['oauth_signature'], '5hyI7ovTVkcCyLeOKYzugnIvseo=')
+        self.assertEquals(req['oauth_signature'], 'IBw5mfvoCsDjgpcsVKbyvsDqQaU=')
 
     def test_from_request(self):
         url = "http://sp.example.com/"

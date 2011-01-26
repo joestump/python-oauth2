@@ -1,3 +1,13 @@
+python-oauth2 (1.5.148) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * default body is the empty string rather than None; add the Realm
+    header
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Wed, 26 Jan 2011 17:02:34 +0000
+
 python-oauth2 (1.5.147) lucid; urgency=low
 
   [ Zooko Ofsimplegeo ]

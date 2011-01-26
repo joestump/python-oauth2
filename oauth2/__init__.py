@@ -319,7 +319,7 @@ class Request(dict):
     version = OAUTH_VERSION
 
     def __init__(self, method=HTTP_METHOD, url=None, parameters=None,
-                 body=None, is_form_encoded=False):
+                 body='', is_form_encoded=False):
         if url is not None:
             self.url = to_unicode(url)
         self.method = method
@@ -517,7 +517,7 @@ class Request(dict):
     @classmethod
     def from_consumer_and_token(cls, consumer, token=None,
             http_method=HTTP_METHOD, http_url=None, parameters=None,
-            body=None, is_form_encoded=False):
+            body='', is_form_encoded=False):
         if not parameters:
             parameters = {}
  
@@ -603,7 +603,7 @@ class Client(httplib2.Http):
 
         self.method = method
 
-    def request(self, uri, method="GET", body=None, headers=None, 
+    def request(self, uri, method="GET", body='', headers=None, 
         redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
         DEFAULT_POST_CONTENT_TYPE = 'application/x-www-form-urlencoded'
 
@@ -628,12 +628,21 @@ class Client(httplib2.Http):
 
         req.sign_request(self.method, self.consumer, self.token)
 
+        schema, rest = urllib.splittype(uri)
+        if rest.startswith('//'):
+            hierpart = '//'
+        else:
+            hierpart = ''
+        host, rest = urllib.splithost(rest)
+
+        realm = schema + ':' + hierpart + host
+
         if is_form_encoded:
             body = req.to_postdata()
         elif method == "GET":
             uri = req.to_url()
         else:
-            headers.update(req.to_header())
+            headers.update(req.to_header(realm=realm))
 
         return httplib2.Http.request(self, uri, method=method, body=body, 
             headers=headers, redirections=redirections, 

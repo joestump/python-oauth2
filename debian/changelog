@@ -1,3 +1,14 @@
+python-oauth2 (1.5.149) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * add the body-hash header as specified in
+    http://oauth.googlecode.com/svn/spec/ext/body_hash/1.0/oauth-
+    bodyhash.html
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Wed, 26 Jan 2011 17:11:34 +0000
+
 python-oauth2 (1.5.148) lucid; urgency=low
 
   [ Zooko Ofsimplegeo ]

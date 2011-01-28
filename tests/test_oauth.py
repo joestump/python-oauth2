@@ -480,23 +480,20 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         self.assertEquals(b['max-contacts'], ['10'])
         self.assertEquals(a, b)
 
-    def test_signature_base_string_nonascii(self):
-        consumer = oauth.Consumer('consumer_token', 'consumer_secret')
-
-        url = "http://api.simplegeo.com:80/1.0/places/address.json?q=monkeys&category=animal&address=41+Decatur+St%2C+San+Francisc%E2%9D%A6%2C+CA"
-        req = oauth.Request("GET", url)
-        self.failUnlessReallyEqual(req.normalized_url, u'http://api.simplegeo.com/1.0/places/address.json')
-        self.assertEquals(req.url, u'http://api.simplegeo.com:80/1.0/places/address.json?q=monkeys&category=animal&address=41+Decatur+St%2C+San+Francisc%E2%9D%A6%2C+CA')
-        req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), consumer, None)
-
     def test_signature_base_string_nonascii_nonutf8(self):
         consumer = oauth.Consumer('consumer_token', 'consumer_secret')
 
-        url = "http://api.simplegeo.com:80/1.0/places/address.json?q=monkeys&category=animal&address=41+Decatur+St%2C+San+Francisc%E2%9D%A6%2C+CA"
+        url = u'http://api.simplegeo.com:80/1.0/places/address.json?q=monkeys&category=animal&address=41+Decatur+St,+San+Francisc\u2766,+CA'
         req = oauth.Request("GET", url)
         self.failUnlessReallyEqual(req.normalized_url, u'http://api.simplegeo.com/1.0/places/address.json')
-        self.assertEquals(req.url, u'http://api.simplegeo.com:80/1.0/places/address.json?q=monkeys&category=animal&address=41+Decatur+St%2C+San+Francisc%E2%9D%A6%2C+CA')
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), consumer, None)
+        self.failUnlessReallyEqual(req['oauth_signature'], 'WhufgeZKyYpKsI70GZaiDaYwl6g=')
+
+        url = 'http://api.simplegeo.com:80/1.0/places/address.json?q=monkeys&category=animal&address=41+Decatur+St,+San+Francisc\xe2\x9d\xa6,+CA'
+        req = oauth.Request("GET", url)
+        self.failUnlessReallyEqual(req.normalized_url, u'http://api.simplegeo.com/1.0/places/address.json')
+        req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), consumer, None)
+        self.failUnlessReallyEqual(req['oauth_signature'], 'WhufgeZKyYpKsI70GZaiDaYwl6g=')
 
     def test_signature_base_string_with_query(self):
         url = "https://www.google.com/m8/feeds/contacts/default/full/?alt=json&max-contacts=10"

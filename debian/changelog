@@ -1,3 +1,12 @@
+python-oauth2 (1.5.152) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * another test for handling of non-ascii, non-utf-8 urls
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Fri, 28 Jan 2011 18:14:34 +0000
+
 python-oauth2 (1.5.151) lucid; urgency=low
 
   * UNRELEASED

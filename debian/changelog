@@ -1,3 +1,13 @@
+python-oauth2 (1.5.155) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * use multiple values under the same key from the body (fixes #23)
+    Thanks to rogerm, ideasculptor, jiivan, timgraham.
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Tue, 01 Feb 2011 23:43:56 +0000
+
 python-oauth2 (1.5.154) lucid; urgency=low
 
   * UNRELEASED

@@ -1212,6 +1212,21 @@ class TestClient(unittest.TestCase):
 
         client.request(uri, 'GET')
 
+    @mock.patch('httplib2.Http.request')
+    @mock.patch('oauth2.Request.from_consumer_and_token')
+    def test_multiple_values_for_a_key(self, mockReqConstructor, mockHttpRequest):
+        client = oauth.Client(self.consumer, None)
+
+        request = oauth.Request("GET", "http://example.com/fetch.php", parameters={'multi': ['1', '2']})
+        mockReqConstructor.return_value = request
+
+        client.request('http://whatever', 'POST', body='multi=1&multi=2')
+
+        self.failUnlessEqual(mockReqConstructor.call_count, 1)
+        self.failUnlessEqual(mockReqConstructor.call_args[1]['parameters'], {'multi': ['1', '2']})
+
+        self.failUnless('multi=1' in mockHttpRequest.call_args[1]['body'])
+        self.failUnless('multi=2' in mockHttpRequest.call_args[1]['body'])
+
 if __name__ == "__main__":
     unittest.main()
-

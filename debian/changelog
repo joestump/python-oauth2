@@ -1,3 +1,13 @@
+python-oauth2 (1.5.153) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * add work-around for bug unicode-handling in urlparse in Python <
+    2.7, including tests
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Tue, 01 Feb 2011 16:31:56 +0000
+
 python-oauth2 (1.5.152) lucid; urgency=low
 
   [ Zooko Ofsimplegeo ]

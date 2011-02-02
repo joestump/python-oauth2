@@ -531,6 +531,17 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         self.assertEquals(normalized_params['alt'], 'json')
         self.assertEquals(normalized_params['max-contacts'], '10')
 
+    def test_get_normalized_parameters_empty(self):
+        url = "http://sp.example.com/?empty="
+
+        req = oauth.Request("GET", url)
+
+        res = req.get_normalized_parameters()
+
+        expected='empty='
+
+        self.assertEquals(expected, res)
+
     def test_get_normalized_parameters(self):
         url = "http://sp.example.com/"
 

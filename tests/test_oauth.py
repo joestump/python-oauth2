@@ -1,3 +1,5 @@
+﻿# -*- coding: utf-8 -*-
+
 """
 The MIT License
 
@@ -363,7 +365,8 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
             u'bar': u'foo',
             u'multi': [u'FOO',u'BAR'],
             u'uni_utf8': u'\xae',
-            u'uni_unicode': u'\u00ae'
+            u'uni_unicode': u'\u00ae',
+            u'uni_unicode_2': u'åÅøØ',
         }
 
         params = oauth_params

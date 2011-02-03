@@ -1,3 +1,12 @@
+python-oauth2 (1.5.158) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * keep empty params parsed from the URL (fixes #22)
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Wed, 02 Feb 2011 19:34:25 +0000
+
 python-oauth2 (1.5.155) lucid; urgency=low
 
   [ Zooko Ofsimplegeo ]

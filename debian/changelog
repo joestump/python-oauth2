@@ -1,3 +1,13 @@
+python-oauth2 (1.5.160) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * add another unicode test case to the tests just to show to user
+    saevarom on github
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Thu, 03 Feb 2011 00:01:55 +0000
+
 python-oauth2 (1.5.159) lucid; urgency=low
 
   * UNRELEASED

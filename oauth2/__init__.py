@@ -446,8 +446,8 @@ class Request(dict):
         query = urlparse.urlparse(self.url)[4]
 
         url_items = self._split_url_string(query).items()
-        non_oauth_url_items = list([(to_utf8(k), to_utf8(v)) for k, v in url_items  if not k.startswith('oauth_')])
-        items.extend(non_oauth_url_items)
+        url_items = [(to_utf8(k), to_utf8(v)) for k, v in url_items ]
+        items.extend(url_items)
 
         items.sort()
         encoded_str = urllib.urlencode(items)

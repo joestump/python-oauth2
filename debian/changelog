@@ -1,3 +1,16 @@
+python-oauth2 (1.5.161) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * Include all parameters from URL, even ones that begin with "oauth_",
+    in signature base. effectively reverts
+    https://github.com/simplegeo/python-
+    oauth2/commit/50ca9578f598faff5427e58814e2f45d01d3261c fixes #27
+    Thanks to @robhudson for the bug report and help debugging.
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Thu, 03 Feb 2011 18:03:59 +0000
+
 python-oauth2 (1.5.160) lucid; urgency=low
 
   [ Zooko Ofsimplegeo ]

@@ -1,3 +1,14 @@
+python-oauth2 (1.5.162) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * import parse_qs from cgi if it can't be imported from urlparse, thus
+    regaining compatibility with Python 2.5 fixes #47 thanks to @vtsao,
+    @subsume, @worksology
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Fri, 04 Feb 2011 17:50:56 +0000
+
 python-oauth2 (1.5.161) lucid; urgency=low
 
   [ Zooko Ofsimplegeo ]

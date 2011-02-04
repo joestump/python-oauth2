@@ -31,7 +31,12 @@ import hmac
 import binascii
 import httplib2
 
-from urlparse import parse_qs
+try:
+    from urlparse import parse_qs
+    parse_qs # placate pyflakes
+except ImportError:
+    # fall back for Python 2.5
+    from cgi import parse_qs
 
 try:
     from hashlib import sha1

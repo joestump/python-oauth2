@@ -545,6 +545,17 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
         self.assertEquals(expected, res)
 
+    def test_get_normalized_parameters_duplicate(self):
+        url = "http://example.com/v2/search/videos?oauth_nonce=79815175&oauth_timestamp=1295397962&oauth_consumer_key=mykey&oauth_signature_method=HMAC-SHA1&q=car&oauth_version=1.0&offset=10&oauth_signature=spWLI%2FGQjid7sQVd5%2FarahRxzJg%3D"
+
+        req = oauth.Request("GET", url)
+
+        res = req.get_normalized_parameters()
+
+        expected='oauth_consumer_key=mykey&oauth_nonce=79815175&oauth_signature=spWLI%2FGQjid7sQVd5%2FarahRxzJg%3D&oauth_signature_method=HMAC-SHA1&oauth_timestamp=1295397962&oauth_version=1.0&offset=10&q=car'
+
+        self.assertEquals(expected, res)
+
     def test_get_normalized_parameters_from_url(self):
         # example copied from
         # https://github.com/ciaranj/node-oauth/blob/master/tests/oauth.js

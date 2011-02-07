@@ -451,7 +451,7 @@ class Request(dict):
         query = urlparse.urlparse(self.url)[4]
 
         url_items = self._split_url_string(query).items()
-        url_items = [(to_utf8(k), to_utf8(v)) for k, v in url_items ]
+        url_items = [(to_utf8(k), to_utf8(v)) for k, v in url_items if k != 'oauth_signature' ]
         items.extend(url_items)
 
         items.sort()
@@ -658,8 +658,8 @@ class Client(httplib2.Http):
         else:
             headers.update(req.to_header(realm=realm))
 
-        return httplib2.Http.request(self, uri, method=method, body=body, 
-            headers=headers, redirections=redirections, 
+        return httplib2.Http.request(self, uri, method=method, body=body,
+            headers=headers, redirections=redirections,
             connection_type=connection_type)
 
 

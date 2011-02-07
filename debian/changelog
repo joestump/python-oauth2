@@ -1,3 +1,14 @@
+python-oauth2 (1.5.164) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * make it actually inspect the request, and fix the test to require
+    the right things of the request ref #46, ref pull/49, thanks
+    @zyegfryed
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Mon, 07 Feb 2011 18:53:56 +0000
+
 python-oauth2 (1.5.163) lucid; urgency=low
 
   [ Zooko Ofsimplegeo ]

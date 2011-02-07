@@ -436,8 +436,9 @@ class Request(dict):
         query = urlparse.urlparse(self.url)[4]
         url_items = self._split_url_string(query).items()
 
-        _items = self.items() + url_items
-        for key, value in _items:
+        _items = self.copy()
+        _items.update(dict(url_items))
+        for key, value in _items.iteritems():
             if key == 'oauth_signature':
                 continue
             # 1.0a/9.1.1 states that kvp must be sorted by key, then by value,

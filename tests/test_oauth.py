@@ -552,7 +552,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
         res = req.get_normalized_parameters()
 
-        expected='oauth_consumer_key=mykey&oauth_nonce=79815175&oauth_signature=spWLI%2FGQjid7sQVd5%2FarahRxzJg%3D&oauth_signature_method=HMAC-SHA1&oauth_timestamp=1295397962&oauth_version=1.0&offset=10&q=car'
+        expected='oauth_consumer_key=mykey&oauth_nonce=79815175&oauth_signature_method=HMAC-SHA1&oauth_timestamp=1295397962&oauth_version=1.0&offset=10&q=car'
 
         self.assertEquals(expected, res)
 
@@ -599,6 +599,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
             'oauth_signature_method': "HMAC-SHA1",
             'oauth_token': "ad180jjd733klru7",
             'multi': ['FOO','BAR', u'\u00ae', '\xc2\xae'],
+            'multi_same': ['FOO','FOO'],
             'uni_utf8_bytes': '\xc2\xae',
             'uni_unicode_object': u'\u00ae'
         }
@@ -607,7 +608,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
         res = req.get_normalized_parameters()
 
-        expected='multi=BAR&multi=FOO&multi=%C2%AE&multi=%C2%AE&oauth_consumer_key=0685bd9184jfhq22&oauth_nonce=4572616e48616d6d65724c61686176&oauth_signature_method=HMAC-SHA1&oauth_timestamp=137131200&oauth_token=ad180jjd733klru7&oauth_version=1.0&uni_unicode_object=%C2%AE&uni_utf8_bytes=%C2%AE'
+        expected='multi=BAR&multi=FOO&multi=%C2%AE&multi=%C2%AE&multi_same=FOO&multi_same=FOO&oauth_consumer_key=0685bd9184jfhq22&oauth_nonce=4572616e48616d6d65724c61686176&oauth_signature_method=HMAC-SHA1&oauth_timestamp=137131200&oauth_token=ad180jjd733klru7&oauth_version=1.0&uni_unicode_object=%C2%AE&uni_utf8_bytes=%C2%AE'
 
         self.assertEquals(expected, res)
 

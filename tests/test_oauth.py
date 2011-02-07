@@ -31,7 +31,6 @@ import random
 import time
 import urllib
 import urlparse
-from types import ListType
 import mock
 import httplib2
 
@@ -552,7 +551,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
         res = req.get_normalized_parameters()
 
-        expected='oauth_consumer_key=mykey&oauth_nonce=79815175&oauth_signature=spWLI%2FGQjid7sQVd5%2FarahRxzJg%3D&oauth_signature_method=HMAC-SHA1&oauth_timestamp=1295397962&oauth_version=1.0&offset=10&q=car'
+        expected='oauth_consumer_key=mykey&oauth_nonce=79815175&oauth_signature_method=HMAC-SHA1&oauth_timestamp=1295397962&oauth_version=1.0&offset=10&q=car'
 
         self.assertEquals(expected, res)
 
@@ -1258,7 +1257,7 @@ class TestClient(unittest.TestCase):
                     http_method='GET', http_url=uri, parameters={})
             req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), self.consumer, None)
             expected = parse_qsl(urlparse.urlparse(req.to_url()).query)
-            actual = parse_qsl(urlparse.urlparse(url).query)
+            actual = parse_qsl(urlparse.urlparse(ur).query)
             self.failUnlessEqual(len(expected), len(actual))
             actual = dict(actual)
             for key, value in expected:

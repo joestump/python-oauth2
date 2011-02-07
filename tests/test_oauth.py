@@ -1246,9 +1246,8 @@ class TestClient(unittest.TestCase):
 
         def mockrequest(cl, ur, **kw):
             self.failUnless(cl is client)
-            self.failUnless(ur is uri)
             self.failUnlessEqual(frozenset(kw.keys()), frozenset(['method', 'body', 'redirections', 'connection_type', 'headers']))
-            self.failUnlessEqual(kw['body'], None)
+            self.failUnlessEqual(kw['body'], '')
             self.failUnlessEqual(kw['connection_type'], None)
             self.failUnlessEqual(kw['method'], 'GET')
             self.failUnlessEqual(kw['redirections'], httplib2.DEFAULT_MAX_REDIRECTS)
@@ -1258,7 +1257,7 @@ class TestClient(unittest.TestCase):
                     http_method='GET', http_url=uri, parameters={})
             req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), self.consumer, None)
             expected = parse_qsl(urlparse.urlparse(req.to_url()).query)
-            actual = parse_qsl(urlparse.urlparse(url).query)
+            actual = parse_qsl(urlparse.urlparse(ur).query)
             self.failUnlessEqual(len(expected), len(actual))
             actual = dict(actual)
             for key, value in expected:
@@ -1266,6 +1265,8 @@ class TestClient(unittest.TestCase):
                     self.failUnlessEqual(actual[key], value)
 
             return random_result
+
+        mockHttpRequest.side_effect = mockrequest
 
         client.request(uri, 'GET')
 

@@ -1,3 +1,15 @@
+python-oauth2 (1.5.165) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * get_normalized_parameters() is required to exclude any
+    oauth_signature that was already there, and it is required to
+    preserve duplicate keys, even with identical values ref #46, fixes
+    pull/49, thanks @zyegfryed
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Mon, 07 Feb 2011 19:24:56 +0000
+
 python-oauth2 (1.5.164) lucid; urgency=low
 
   [ Zooko Ofsimplegeo ]

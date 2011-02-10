@@ -597,7 +597,7 @@ class Client(httplib2.Http):
     """OAuthClient is a worker to attempt to execute a request."""
 
     def __init__(self, consumer, token=None, cache=None, timeout=None,
-        proxy_info=None):
+        proxy_info=None, parameter_method=None):
 
         if consumer is not None and not isinstance(consumer, Consumer):
             raise ValueError("Invalid consumer.")
@@ -608,6 +608,7 @@ class Client(httplib2.Http):
         self.consumer = consumer
         self.token = token
         self.method = SignatureMethod_HMAC_SHA1()
+        self.parameter_method = parameter_method
 
         httplib2.Http.__init__(self, cache=cache, timeout=timeout, proxy_info=proxy_info)
 
@@ -618,7 +619,8 @@ class Client(httplib2.Http):
         self.method = method
 
     def request(self, uri, method="GET", body='', headers=None, 
-        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
+        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None,
+        parameter_method=None):
         DEFAULT_POST_CONTENT_TYPE = 'application/x-www-form-urlencoded'
 
         if not isinstance(headers, dict):
@@ -651,12 +653,24 @@ class Client(httplib2.Http):
 
         realm = schema + ':' + hierpart + host
 
-        if is_form_encoded:
+        parameter_method = parameter_method or self.parameter_method
+
+        if parameter_method is None:
+            if is_form_encoded:
+                parameter_method = 'body'
+            elif method == "GET":
+                parameter_method = 'query'
+            else:
+                parameter_method = 'header'
+
+        if parameter_method == 'header':
+            headers.update(req.to_header(realm=realm))
+        elif parameter_method == 'body':
             body = req.to_postdata()
-        elif method == "GET":
+        elif parameter_method == 'query':
             uri = req.to_url()
         else:
-            headers.update(req.to_header(realm=realm))
+            raise ValueError('Invalid parameter_method: %s' % parameter_method)
 
         return httplib2.Http.request(self, uri, method=method, body=body,
             headers=headers, redirections=redirections,

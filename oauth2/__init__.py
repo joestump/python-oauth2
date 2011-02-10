@@ -26,7 +26,6 @@ import base64
 import urllib.request, urllib.parse, urllib.error
 import time
 import random
-import urllib.parse
 import hmac
 import binascii
 import httplib2
@@ -98,7 +97,7 @@ def to_unicode(s):
     """ Convert to unicode, raise exception with instructive error
     message if s is not unicode, ascii, or utf-8. """
     if not isinstance(s, str):
-        if not isinstance(s, str):
+        if not isinstance(s, bytes):
             raise TypeError('You are required to pass either unicode or string here, not: %r (%s)' % (type(s), s))
         try:
             s = s.decode('utf-8')
@@ -110,13 +109,13 @@ def to_utf8(s):
     return to_unicode(s).encode('utf-8')
 
 def to_unicode_if_string(s):
-    if isinstance(s, str):
+    if isinstance(s, str) or isinstance(s, bytes):
         return to_unicode(s)
     else:
         return s
 
 def to_utf8_if_string(s):
-    if isinstance(s, str):
+    if isinstance(s, str) or isinstance(s, bytes):
         return to_utf8(s)
     else:
         return s
@@ -126,7 +125,7 @@ def to_unicode_optional_iterator(x):
     Raise TypeError if x is a str containing non-utf8 bytes or if x is
     an iterable which contains such a str.
     """
-    if isinstance(x, str):
+    if isinstance(x, str) or isinstance(x, bytes):
         return to_unicode(x)
 
     try:
@@ -436,7 +435,7 @@ class Request(dict):
                 continue
             # 1.0a/9.1.1 states that kvp must be sorted by key, then by value,
             # so we unpack sequence values into multiple items for sorting.
-            if isinstance(value, str):
+            if isinstance(value, str) or isinstance(value, bytes):
                 items.append((to_utf8_if_string(key), to_utf8(value)))
             else:
                 try:
@@ -471,7 +470,7 @@ class Request(dict):
             # section 4.1.1 "OAuth Consumers MUST NOT include an
             # oauth_body_hash parameter on requests with form-encoded
             # request bodies."
-            self['oauth_body_hash'] = base64.b64encode(sha(self.body).digest())
+            self['oauth_body_hash'] = base64.b64encode(sha(self.body.encode('utf8')).digest())
 
         if 'oauth_consumer_key' not in self:
             self['oauth_consumer_key'] = consumer.key
@@ -587,7 +586,7 @@ class Request(dict):
     @staticmethod
     def _split_url_string(param_str):
         """Turn URL string into parameters."""
-        parameters = parse_qs(param_str.encode('utf-8'), keep_blank_values=True)
+        parameters = parse_qs(param_str, keep_blank_values=True)
         for k, v in parameters.items():
             parameters[k] = urllib.parse.unquote(v[0])
         return parameters
@@ -818,7 +817,7 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
         """Builds the base signature string."""
         key, raw = self.signing_base(request, consumer, token)
 
-        hashed = hmac.new(key, raw, sha)
+        hashed = hmac.new(key.encode('utf-8'), raw.encode('utf-8'), sha)
 
         # Calculate the digest base 64.
         return binascii.b2a_base64(hashed.digest())[:-1]

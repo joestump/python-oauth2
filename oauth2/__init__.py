@@ -765,7 +765,7 @@ class Client2(object):
         return '%s?%s' % (urlparse.urljoin(self.oauth_base_url, endpoint),
             urllib.urlencode(args))
 
-    def access_token(self, code, redirect_uri, secret_type=None,
+    def access_token(self, code, redirect_uri, params=None, secret_type=None,
         endpoint='access_token'):
         """Get an access token from the supplied code
         https://svn.tools.ietf.org/html/draft-hammer-oauth2-00#section-3.5.2.2
@@ -788,6 +788,8 @@ class Client2(object):
         if secret_type is not None:
             args['secret_type'] = secret_type
 
+        args.update(params or {})
+
         uri = urlparse.urljoin(self.oauth_base_url, endpoint)
         body = urllib.urlencode(args)
         headers = {
@@ -809,7 +811,8 @@ class Client2(object):
             response_args = self.refresh(refresh_token, secret_type=secret_type)
         return response_args
 
-    def refresh(self, refresh_token, secret_type=None, endpoint='access_token'):
+    def refresh(self, refresh_token, params=None, secret_type=None,
+        endpoint='access_token'):
         """Get a new access token from the supplied refresh token
         https://svn.tools.ietf.org/html/draft-hammer-oauth2-00#section-4
         """
@@ -828,6 +831,8 @@ class Client2(object):
         # prepare optional args
         if secret_type is not None:
             args['secret_type'] = secret_type
+
+        args.update(params or {})
 
         uri = urlparse.urljoin(self.oauth_base_url, endpoint)
         body = urllib.urlencode(args)

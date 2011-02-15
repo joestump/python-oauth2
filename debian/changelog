@@ -1,3 +1,13 @@
+python-oauth2 (1.5.166) lucid; urgency=low
+
+  [ Zooko Ofsimplegeo ]
+  * fix encoding of non-ascii data into postdata, really fixes #48 this
+    time (comes with test)
+
+  [ SimpleGeo Nerds ]
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Tue, 15 Feb 2011 17:23:00 +0000
+
 python-oauth2 (1.5.165) lucid; urgency=low
 
   [ Zooko Ofsimplegeo ]

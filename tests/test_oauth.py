@@ -408,6 +408,24 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         for key, val in res.items():
             self.assertEquals(val, params.get(key))
 
+    def test_to_postdata_nonascii(self):
+        realm = "http://sp.example.com/"
+
+        params = {
+            'nonasciithing': u'q\xbfu\xe9 ,aasp u?..a.s',
+            'oauth_version': "1.0",
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': "137131200",
+            'oauth_consumer_key': "0685bd9184jfhq22",
+            'oauth_signature_method': "HMAC-SHA1",
+            'oauth_token': "ad180jjd733klru7",
+            'oauth_signature': "wOJIO9A2W5mFwDgiDvZbTSMK%2FPY%3D",
+        }
+
+        req = oauth.Request("GET", realm, params)
+
+        self.failUnlessReallyEqual(req.to_postdata(), 'nonasciithing=q%C2%BFu%C3%A9%20%2Caasp%20u%3F..a.s&oauth_nonce=4572616e48616d6d65724c61686176&oauth_timestamp=137131200&oauth_consumer_key=0685bd9184jfhq22&oauth_signature_method=HMAC-SHA1&oauth_version=1.0&oauth_token=ad180jjd733klru7&oauth_signature=wOJIO9A2W5mFwDgiDvZbTSMK%252FPY%253D')
+
     def test_to_postdata(self):
         realm = "http://sp.example.com/"
 

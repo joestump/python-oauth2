@@ -449,8 +449,15 @@ class Request(dict):
 
     def get_normalized_parameters(self):
         """Return a string that contains the parameters that must be signed."""
+        # Include any query string parameters from the provided URL
+        query = urlparse.urlparse(self.url)[4]
+        url_items = self._split_url_string(query) or {}
+        # Add the provided oauth parameters. Using a dict gives us uniqueness
+        # of data.
+        url_items.update(self.copy())
+
         items = []
-        for key, value in self.iteritems():
+        for key, value in url_items.iteritems():
             if key == 'oauth_signature':
                 continue
             # 1.0a/9.1.1 states that kvp must be sorted by key, then by value,
@@ -465,13 +472,6 @@ class Request(dict):
                     items.append((to_utf8_if_string(key), to_utf8_if_string(value)))
                 else:
                     items.extend((to_utf8_if_string(key), to_utf8_if_string(item)) for item in value)
-
-        # Include any query string parameters from the provided URL
-        query = urlparse.urlparse(self.url)[4]
-
-        url_items = self._split_url_string(query).items()
-        url_items = [(to_utf8(k), to_utf8(v)) for k, v in url_items if k != 'oauth_signature' ]
-        items.extend(url_items)
 
         items.sort()
         encoded_str = urllib.urlencode(items)

@@ -127,6 +127,10 @@ can be easily translated to a web application.
     
     resp, content = client.request(access_token_url, "POST")
     access_token = dict(urlparse.parse_qsl(content))
+
+    token = oauth2.Token(access_token['oauth_token'],
+        access_token['oauth_token_secret'])
+    client = oauth2.Client(consumer, token)
     
     print "Access Token:"
     print "    - oauth_token        = %s" % access_token['oauth_token']

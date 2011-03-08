@@ -650,7 +650,9 @@ class Client(httplib2.Http):
         is_form_encoded = \
             headers.get('Content-Type') == 'application/x-www-form-urlencoded'
 
-        parameters = parameters or {}
+        if not isinstance(parameters, dict):
+            parameters = {}
+
         if is_form_encoded and body:
             parameters.update(parse_qs(body))
 

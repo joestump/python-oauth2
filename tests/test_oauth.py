@@ -26,6 +26,7 @@ THE SOFTWARE.
 import sys
 import os
 import unittest
+sys.path[0:0] = [os.path.join(os.path.dirname(__file__), ".."),]
 import oauth2 as oauth
 import random
 import time
@@ -40,9 +41,6 @@ try:
     from urlparse import parse_qs, parse_qsl
 except ImportError:
     from cgi import parse_qs, parse_qsl
-
-
-sys.path[0:0] = [os.path.join(os.path.dirname(__file__), ".."),]
 
 
 class TestError(unittest.TestCase):

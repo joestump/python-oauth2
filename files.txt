@@ -1,1 +1,0 @@
-/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/oauth2-1.5.170-py2.7.egg

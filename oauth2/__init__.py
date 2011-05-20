@@ -491,6 +491,7 @@ class Request(dict):
             # oauth_body_hash parameter on requests with form-encoded
             # request bodies."
             self['oauth_body_hash'] = base64.b64encode(sha(self.body).digest())
+            self['oauth_body_hash'] = unicode(self['oauth_body_hash'])
 
         if 'oauth_consumer_key' not in self:
             self['oauth_consumer_key'] = consumer.key

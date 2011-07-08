@@ -78,9 +78,9 @@ def build_authenticate_header(realm=''):
     return {'WWW-Authenticate': 'OAuth realm="%s"' % realm}
 
 
-def build_xoauth_string(url, consumer, token=None):
+def build_xoauth_string(url, consumer, token=None, request_class=None, ):
     """Build an XOAUTH string for use in SMTP/IMPA authentication."""
-    request = Request.from_consumer_and_token(consumer, token,
+    request = (request_class if request_class else Request).from_consumer_and_token(consumer, token,
         "GET", url)
 
     signing_method = SignatureMethod_HMAC_SHA1()
@@ -276,8 +276,8 @@ class Token(object):
             data['oauth_callback_confirmed'] = self.callback_confirmed
         return urllib.urlencode(data)
  
-    @staticmethod
-    def from_string(s):
+    @classmethod
+    def from_string(cls, s):
         """Deserializes a token from a string like one returned by
         `to_string()`."""
 
@@ -299,7 +299,7 @@ class Token(object):
             raise ValueError("'oauth_token_secret' not found in " 
                 "OAuth request.")
 
-        token = Token(key, secret)
+        token = cls(key, secret)
         try:
             token.callback_confirmed = params['oauth_callback_confirmed'][0]
         except KeyError:
@@ -346,6 +346,7 @@ class Request(dict):
         self.method = method
         if parameters is not None:
             for k, v in parameters.iteritems():
+                #k = to_unicode(k)
                 k = to_unicode(k)
                 v = to_unicode_optional_iterator(v)
                 self[k] = v
@@ -550,7 +551,7 @@ class Request(dict):
     @classmethod
     def from_consumer_and_token(cls, consumer, token=None,
             http_method=HTTP_METHOD, http_url=None, parameters=None,
-            body='', is_form_encoded=False):
+            body='', is_form_encoded=False, callback=None, ):
         if not parameters:
             parameters = {}
  
@@ -564,12 +565,15 @@ class Request(dict):
         defaults.update(parameters)
         parameters = defaults
  
+        if callback:
+            parameters['oauth_callback'] = callback
+ 
         if token:
             parameters['oauth_token'] = token.key
             if token.verifier:
                 parameters['oauth_verifier'] = token.verifier
  
-        return Request(http_method, http_url, parameters, body=body, 
+        return cls(http_method, http_url, parameters, body=body, 
                        is_form_encoded=is_form_encoded)
  
     @classmethod
@@ -586,8 +590,8 @@ class Request(dict):
  
         return cls(http_method, http_url, parameters)
  
-    @staticmethod
-    def _split_header(header):
+    @classmethod
+    def _split_header(cls, header):
         """Turn Authorization: header into parameters."""
         params = {}
         parts = header.split(',')
@@ -603,8 +607,8 @@ class Request(dict):
             params[param_parts[0]] = urllib.unquote(param_parts[1].strip('\"'))
         return params
  
-    @staticmethod
-    def _split_url_string(param_str):
+    @classmethod
+    def _split_url_string(cls, param_str):
         """Turn URL string into parameters."""
         parameters = parse_qs(param_str.encode('utf-8'), keep_blank_values=True)
         for k, v in parameters.iteritems():
@@ -637,7 +641,8 @@ class Client(httplib2.Http):
         self.method = method
 
     def request(self, uri, method="GET", body='', headers=None, 
-        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
+        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None, request_class=None, ):
+
         DEFAULT_POST_CONTENT_TYPE = 'application/x-www-form-urlencoded'
 
         if not isinstance(headers, dict):
@@ -655,7 +660,7 @@ class Client(httplib2.Http):
         else:
             parameters = None
 
-        req = Request.from_consumer_and_token(self.consumer, 
+        req = (request_class if request_class else Request).from_consumer_and_token(self.consumer, 
             token=self.token, http_method=method, http_url=uri, 
             parameters=parameters, body=body, is_form_encoded=is_form_encoded)
 

@@ -490,7 +490,11 @@ class Request(dict):
             # section 4.1.1 "OAuth Consumers MUST NOT include an
             # oauth_body_hash parameter on requests with form-encoded
             # request bodies."
-            self['oauth_body_hash'] = base64.b64encode(sha(self.body).digest())
+            if not callable(sha):
+                result = sha.sha(self.body) # python 2.4 fix
+            else:
+                result = sha(self.body)
+            self['oauth_body_hash'] = base64.b64encode(result.digest())
 
         if 'oauth_consumer_key' not in self:
             self['oauth_consumer_key'] = consumer.key

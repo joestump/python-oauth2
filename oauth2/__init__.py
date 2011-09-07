@@ -23,6 +23,7 @@ THE SOFTWARE.
 """
 
 import base64
+import copy
 import urllib
 import time
 import random
@@ -642,6 +643,8 @@ class Client(httplib2.Http):
 
         if not isinstance(headers, dict):
             headers = {}
+        else:
+            headers = copy.copy(headers)
 
         if method == "POST":
             headers['Content-Type'] = headers.get('Content-Type', 

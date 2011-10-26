@@ -420,7 +420,11 @@ class Request(dict):
             query = base_url[4]
         query = parse_qs(query)
         for k, v in self.items():
-            query.setdefault(k, []).append(v)
+            # deal with multivalued parameters properly
+            if isinstance(v,list):
+                query.setdefault(k, []).extend(v)
+            else:
+                query.setdefault(k, []).append(v)     
         
         try:
             scheme = base_url.scheme

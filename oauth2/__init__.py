@@ -421,7 +421,7 @@ class Request(dict):
         query = parse_qs(query)
         for k, v in self.items():
             # deal with multivalued parameters properly
-            if isinstance(v,list):
+            if hasattr(v, "__iter__"):
                 query.setdefault(k, []).extend(v)
             else:
                 query.setdefault(k, []).append(v)     

@@ -44,7 +44,8 @@ except ImportError:
     # hashlib was added in Python 2.5
     import sha
 
-__version__ = '1.5-tweepy'
+import _version
+__version__ = _version.__version__
 
 OAUTH_VERSION = '1.0'  # Hi Blaine!
 HTTP_METHOD = 'GET'

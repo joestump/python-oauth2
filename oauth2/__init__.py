@@ -418,7 +418,7 @@ class Request(dict):
         except AttributeError:
             # must be python <2.5
             query = base_url[4]
-        query = parse_qs(query)
+        query = parse_qs(query, keep_blank_values=True)
         for k, v in self.items():
             query.setdefault(k, []).append(v)
         

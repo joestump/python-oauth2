@@ -1,3 +1,9 @@
+python-oauth2 (1.5.210) maverick; urgency=low
+
+  * UNRELEASED
+
+ -- SimpleGeo Nerds <nerds@simplegeo.com>  Fri, 09 Dec 2011 01:17:31 +0000
+
 python-oauth2 (1.5.170) lucid; urgency=low
 
   * UNRELEASED

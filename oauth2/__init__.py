@@ -739,6 +739,12 @@ class Client2(object):
             parameters[key] = urllib.unquote(val[0])
         return parameters
 
+    @staticmethod
+    def _get_json(data):
+        """Turn json response into hash."""
+        return json.loads(data)
+
+
     def authorization_url(self, redirect_uri=None, params=None, state=None,
         immediate=None, endpoint='authorize'):
         """Get the URL to redirect the user for client authorization
@@ -800,7 +806,11 @@ class Client2(object):
             headers=headers)
         if not response.status == 200:
             raise Error(content)
-        response_args = Client2._split_url_string(content)
+
+        if resp['content-type'] == 'application/json':
+            response_args = Client2._get_json(content)
+        else:
+            response_args = Client2._split_url_string(content)
 
         error = response_args.pop('error', None)
         if error is not None:

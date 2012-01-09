@@ -29,6 +29,7 @@ import urlparse
 import hmac
 import binascii
 import httplib2
+import json
 
 try:
     from urlparse import parse_qs, parse_qsl

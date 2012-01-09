@@ -29,6 +29,7 @@ import urlparse
 import hmac
 import binascii
 import httplib2
+import json
 
 try:
     from urlparse import parse_qs, parse_qsl
@@ -739,6 +740,13 @@ class Client2(object):
             parameters[key] = urllib.unquote(val[0])
         return parameters
 
+    @staticmethod
+    def _get_json(data):
+        """Turn json response into hash."""
+        result = json.loads(data)
+        return result
+
+
     def authorization_url(self, redirect_uri=None, params=None, state=None,
         immediate=None, endpoint='authorize'):
         """Get the URL to redirect the user for client authorization
@@ -800,7 +808,11 @@ class Client2(object):
             headers=headers)
         if not response.status == 200:
             raise Error(content)
-        response_args = Client2._split_url_string(content)
+
+        if "json" in response['content-type']:
+            response_args = Client2._get_json(content)
+        else:
+            response_args = Client2._split_url_string(content)
 
         error = response_args.pop('error', None)
         if error is not None:

@@ -811,7 +811,6 @@ class Client2(object):
 
         if "json" in response['content-type']:
             response_args = Client2._get_json(content)
-            print response_args
         else:
             response_args = Client2._split_url_string(content)
 

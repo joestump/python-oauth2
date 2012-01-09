@@ -743,7 +743,8 @@ class Client2(object):
     @staticmethod
     def _get_json(data):
         """Turn json response into hash."""
-        return json.loads(data)
+        result = json.loads(data)
+        return result
 
 
     def authorization_url(self, redirect_uri=None, params=None, state=None,

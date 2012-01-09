@@ -807,7 +807,7 @@ class Client2(object):
         if not response.status == 200:
             raise Error(content)
 
-        if resp['content-type'] == 'application/json':
+        if response['content-type'] == 'application/json':
             response_args = Client2._get_json(content)
         else:
             response_args = Client2._split_url_string(content)

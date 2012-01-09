@@ -295,3 +295,20 @@ and code here might need to be updated if you are using Python 2.6+.
 
 * You'll likely want to set `LOGIN_URL` to `/login/` so that users are properly redirected to your Twitter login handler when you use `@login_required` in other parts of your Django app.
 * You can also set `AUTH_PROFILE_MODULE = 'mytwitterapp.Profile'` so that you can easily access the Twitter OAuth token/secret for that user using the `User.get_profile()` method in Django.
+
+# OAuth2 Example
+
+You might have thought from the name "oauth2" that this libary supported
+the OAuth2 standard. You would have been wrong, except for the fine efforts
+of https://github.com/dgouldin. Here is how you use it:
+
+    import oauth2
+    client = oauth2.Client2(CONSUMER_KEY, CONSUMER_SECRET, AUTHORIZATION_URL)
+    auth_url = client.authorization_url(redirect_uri = CALLBACK_URL)
+    print auth_url
+    # navigate to auth_url, to obtain code
+    token = client.access_token(code, CALLBACK_URL, endpoint='token')["access_token"]
+    print token
+    # use token to call secure APIs
+    (headers, content) = client.request(RESOURCE_URL, access_token=token)
+    ...

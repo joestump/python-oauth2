@@ -808,10 +808,10 @@ class Client2(object):
         if not response.status == 200:
             raise Error(content)
 
-        if "json" in response['content-type']:
-            response_args = Client2._get_json(content)
-        else:
-            response_args = Client2._split_url_string(content)
+#        if "json" in response['content-type']:
+        response_args = Client2._get_json(content)
+#        else:
+#            response_args = Client2._split_url_string(content)
 
         error = response_args.pop('error', None)
         if error is not None:

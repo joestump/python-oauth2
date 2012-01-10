@@ -481,10 +481,10 @@ class Request(dict):
         # Spaces must be encoded with "%20" instead of "+"
         return encoded_str.replace('+', '%20').replace('%7E', '~')
 
-    def sign_request(self, signature_method, consumer, token):
+    def sign_request(self, signature_method, consumer, token, include_body_hash=True):
         """Set the signature parameter to the result of sign."""
 
-        if not self.is_form_encoded:
+        if not self.is_form_encoded and include_body_hash:
             # according to
             # http://oauth.googlecode.com/svn/spec/ext/body_hash/1.0/oauth-bodyhash.html
             # section 4.1.1 "OAuth Consumers MUST NOT include an

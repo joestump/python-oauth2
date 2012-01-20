@@ -643,7 +643,7 @@ class Client(httplib2.Http):
         if not isinstance(headers, dict):
             headers = {}
 
-        if method == "POST":
+        if method == "POST" and 'Content-Type' not in headers:
             headers['Content-Type'] = headers.get('Content-Type', 
                 DEFAULT_POST_CONTENT_TYPE)
 

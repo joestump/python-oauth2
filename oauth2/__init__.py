@@ -637,7 +637,7 @@ class Client(httplib2.Http):
         self.method = method
 
     def request(self, uri, method="GET", body='', headers=None, 
-        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
+        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None, realm=None):
         DEFAULT_POST_CONTENT_TYPE = 'application/x-www-form-urlencoded'
 
         if not isinstance(headers, dict):
@@ -661,14 +661,15 @@ class Client(httplib2.Http):
 
         req.sign_request(self.method, self.consumer, self.token)
 
-        schema, rest = urllib.splittype(uri)
-        if rest.startswith('//'):
-            hierpart = '//'
-        else:
-            hierpart = ''
-        host, rest = urllib.splithost(rest)
+        if not realm:
+            schema, rest = urllib.splittype(uri)
+            if rest.startswith('//'):
+                hierpart = '//'
+            else:
+                hierpart = ''
+            host, rest = urllib.splithost(rest)
 
-        realm = schema + ':' + hierpart + host
+            realm = schema + ':' + hierpart + host
 
         if is_form_encoded:
             body = req.to_postdata()

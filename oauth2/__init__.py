@@ -569,8 +569,8 @@ class Request(dict):
             if token.verifier:
                 parameters['oauth_verifier'] = token.verifier
  
-        return Request(http_method, http_url, parameters, body=body, 
-                       is_form_encoded=is_form_encoded)
+        return cls(http_method, http_url, parameters, body=body,
+                   is_form_encoded=is_form_encoded)
  
     @classmethod
     def from_token_and_callback(cls, token, callback=None, 

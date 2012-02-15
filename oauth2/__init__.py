@@ -637,7 +637,7 @@ class Client(httplib2.Http):
         self.method = method
 
     def request(self, uri, method="GET", body='', headers=None, 
-        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
+        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None, include_body_hash=True):
         DEFAULT_POST_CONTENT_TYPE = 'application/x-www-form-urlencoded'
 
         if not isinstance(headers, dict):
@@ -659,7 +659,7 @@ class Client(httplib2.Http):
             token=self.token, http_method=method, http_url=uri, 
             parameters=parameters, body=body, is_form_encoded=is_form_encoded)
 
-        req.sign_request(self.method, self.consumer, self.token)
+        req.sign_request(self.method, self.consumer, self.token, include_body_hash=include_body_hash)
 
         schema, rest = urllib.splittype(uri)
         if rest.startswith('//'):

@@ -967,9 +967,6 @@ class Client2(object):
         if error is not None:
             raise Error(error)
 
-        refresh_token = response_args.pop('refresh_token', None)
-        if refresh_token is not None:
-            response_args = self.refresh(refresh_token, secret_type=secret_type)
         return response_args
 
     def refresh(self, refresh_token, params=None, secret_type=None,

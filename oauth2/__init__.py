@@ -506,7 +506,7 @@ class Request(dict):
         try:
             return self['oauth_body_hash'] == base64.b64encode(sha(self.body).digest())
         except KeyError:
-            raise Error('oauth_body_hash expected, none found in request' % hash)
+            raise Error('oauth_body_hash expected, none found in request')
  
     @classmethod
     def make_timestamp(cls):

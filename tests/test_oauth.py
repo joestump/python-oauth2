@@ -995,6 +995,20 @@ class TestServer(unittest.TestCase):
         self.assertEquals(parameters['foo'], 59)
         self.assertEquals(parameters['multi'], ['FOO','BAR'])
 
+    def test_verify_body_hashed_request(self):
+        server = oauth.Server(body_hashing=True)
+        server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
+
+        parameters = server.verify_request(self.request, self.consumer,
+            self.token)
+
+        self.assertTrue('bar' in parameters)
+        self.assertTrue('foo' in parameters)
+        self.assertTrue('multi' in parameters)
+        self.assertEquals(parameters['bar'], 'blerg')
+        self.assertEquals(parameters['foo'], 59)
+        self.assertEquals(parameters['multi'], ['FOO','BAR'])
+
     def test_build_authenticate_header(self):
         server = oauth.Server()
         headers = server.build_authenticate_header('example.com')

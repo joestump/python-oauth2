@@ -500,6 +500,13 @@ class Request(dict):
 
         self['oauth_signature_method'] = signature_method.name
         self['oauth_signature'] = signature_method.sign(self, consumer, token)
+        
+    def verify_body(self):
+        """Compare the body hash to the one from actual body."""
+        try:
+            return self['oauth_body_hash'] == base64.b64encode(sha(self.body).digest())
+        except KeyError:
+            raise Error('oauth_body_hash expected, none found in request' % hash)
  
     @classmethod
     def make_timestamp(cls):
@@ -513,7 +520,7 @@ class Request(dict):
  
     @classmethod
     def from_request(cls, http_method, http_url, headers=None, parameters=None,
-            query_string=None):
+            query_string=None, body=''):
         """Combines multiple parameter sources."""
         if parameters is None:
             parameters = {}
@@ -531,6 +538,10 @@ class Request(dict):
                 except:
                     raise Error('Unable to parse OAuth parameters from '
                         'Authorization header.')
+        is_form_encoded = False
+        if headers and 'Content-Type' in headers:
+            is_form_encoded = \
+                headers.get('Content-Type') == 'application/x-www-form-urlencoded'
  
         # GET or POST query string.
         if query_string:
@@ -543,7 +554,8 @@ class Request(dict):
         parameters.update(url_params)
  
         if parameters:
-            return cls(http_method, http_url, parameters)
+            return cls(http_method, http_url, parameters, body=body, 
+                       is_form_encoded=is_form_encoded)
  
         return None
  
@@ -695,8 +707,9 @@ class Server(object):
     version = OAUTH_VERSION
     signature_methods = None
 
-    def __init__(self, signature_methods=None):
+    def __init__(self, signature_methods=None, body_hashing=False):
         self.signature_methods = signature_methods or {}
+        self.body_hashing = body_hashing
 
     def add_signature_method(self, signature_method):
         self.signature_methods[signature_method.name] = signature_method
@@ -751,6 +764,11 @@ class Server(object):
     def _check_signature(self, request, consumer, token):
         timestamp, nonce = request._get_timestamp_nonce()
         self._check_timestamp(timestamp)
+        
+        if self.body_hashing and not request.is_form_encoded and \
+            not request.verify_body():
+            raise Error('Invalid oauth_body_hash.')
+        
         signature_method = self._get_signature_method(request)
 
         try:

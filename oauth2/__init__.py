@@ -418,23 +418,23 @@ class Request(dict):
         except AttributeError:
             # must be python <2.5
             query = base_url[4]
-        query = parse_qs(query)
+        query = parse_qs(query.encode('utf-8'))
         for k, v in self.items():
-            query.setdefault(k, []).append(v)
+            query.setdefault(k.encode('utf-8'), []).append(to_utf8_optional_iterator(v))
         
         try:
-            scheme = base_url.scheme
-            netloc = base_url.netloc
-            path = base_url.path
-            params = base_url.params
-            fragment = base_url.fragment
+            scheme = base_url.scheme.encode('utf-8')
+            netloc = base_url.netloc.encode('utf-8')
+            path = base_url.path.encode('utf-8')
+            params = base_url.params.encode('utf-8')
+            fragment = base_url.fragment.encode('utf-8')
         except AttributeError:
             # must be python <2.5
-            scheme = base_url[0]
-            netloc = base_url[1]
-            path = base_url[2]
-            params = base_url[3]
-            fragment = base_url[5]
+            scheme = base_url[0].encode('utf-8')
+            netloc = base_url[1].encode('utf-8')
+            path = base_url[2].encode('utf-8')
+            params = base_url[3].encode('utf-8')
+            fragment = base_url[5].encode('utf-8')
         
         url = (scheme, netloc, path, params,
                urllib.urlencode(query, True), fragment)

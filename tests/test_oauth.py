@@ -448,6 +448,33 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         kf = lambda x: x[0]
         self.assertEquals(sorted(flat, key=kf), sorted(parse_qsl(req.to_postdata()), key=kf))
 
+    def test_to_url_nonascii(self):
+        url = "http://sp.example.com/"
+
+        params = {
+            'nonasciithing': u'q\xbfu\xe9 ,aasp u?..a.s',
+            'oauth_version': "1.0",
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': "137131200",
+            'oauth_consumer_key': "0685bd9184jfhq22",
+            'oauth_signature_method': "HMAC-SHA1",
+            'oauth_token': "ad180jjd733klru7",
+            'oauth_signature': "wOJIO9A2W5mFwDgiDvZbTSMK%2FPY%3D",
+        }
+
+        req = oauth.Request("GET", url, params)
+        res = urlparse.urlparse(req.to_url())
+
+        params['nonasciithing'] = params['nonasciithing'].encode('utf-8')
+        exp = urlparse.urlparse("%s?%s" % (url, urllib.urlencode(params)))
+
+        self.assertEquals(exp.netloc, res.netloc)
+        self.assertEquals(exp.path, res.path)
+
+        a = parse_qs(exp.query)
+        b = parse_qs(res.query)
+        self.assertEquals(a, b)
+
     def test_to_url(self):
         url = "http://sp.example.com/"
 

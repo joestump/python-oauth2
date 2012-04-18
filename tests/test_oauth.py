@@ -27,6 +27,8 @@ import sys
 import os
 import unittest
 import oauth2 as oauth
+from oauth2.client import Client
+from oauth2.server import Server
 import random
 import time
 import urllib
@@ -655,7 +657,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
     def test_set_signature_method(self):
         consumer = oauth.Consumer('key', 'secret')
-        client = oauth.Client(consumer)
+        client = Client(consumer)
 
         class Blah:
             pass
@@ -959,16 +961,16 @@ class TestServer(unittest.TestCase):
         self.request.sign_request(signature_method, self.consumer, self.token)
 
     def test_init(self):
-        server = oauth.Server(signature_methods={'HMAC-SHA1' : oauth.SignatureMethod_HMAC_SHA1()})
+        server = Server(signature_methods={'HMAC-SHA1' : oauth.SignatureMethod_HMAC_SHA1()})
         self.assertTrue('HMAC-SHA1' in server.signature_methods)
         self.assertTrue(isinstance(server.signature_methods['HMAC-SHA1'],
             oauth.SignatureMethod_HMAC_SHA1))
 
-        server = oauth.Server()
+        server = Server()
         self.assertEquals(server.signature_methods, {})
 
     def test_add_signature_method(self):
-        server = oauth.Server()
+        server = Server()
         res = server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
         self.assertTrue(len(res) == 1)
         self.assertTrue('HMAC-SHA1' in res)
@@ -982,7 +984,7 @@ class TestServer(unittest.TestCase):
             oauth.SignatureMethod_PLAINTEXT))
 
     def test_verify_request(self):
-        server = oauth.Server()
+        server = Server()
         server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
 
         parameters = server.verify_request(self.request, self.consumer,
@@ -996,7 +998,7 @@ class TestServer(unittest.TestCase):
         self.assertEquals(parameters['multi'], ['FOO','BAR'])
 
     def test_build_authenticate_header(self):
-        server = oauth.Server()
+        server = Server()
         headers = server.build_authenticate_header('example.com')
         self.assertTrue('WWW-Authenticate' in headers)
         self.assertEquals('OAuth realm="example.com"', 
@@ -1024,7 +1026,7 @@ class TestServer(unittest.TestCase):
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         self.request.sign_request(signature_method, self.consumer, self.token)
 
-        server = oauth.Server()
+        server = Server()
         server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
 
         parameters = server.verify_request(self.request, self.consumer,
@@ -1053,7 +1055,7 @@ class TestServer(unittest.TestCase):
         signature_method = oauth.SignatureMethod_HMAC_SHA1()
         request.sign_request(signature_method, consumer, token)
 
-        server = oauth.Server()
+        server = Server()
         server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
 
         self.assertRaises(oauth.Error, server.verify_request, request, consumer, token)
@@ -1081,7 +1083,7 @@ class TestServer(unittest.TestCase):
         signature_method = SignatureMethod_Bad()
         request.sign_request(signature_method, consumer, token)
 
-        server = oauth.Server()
+        server = Server()
         server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
 
         self.assertRaises(oauth.Error, server.verify_request, request,
@@ -1111,7 +1113,7 @@ class TestServer(unittest.TestCase):
         request.sign_request(signature_method, consumer, token)
         del request['oauth_signature']
 
-        server = oauth.Server()
+        server = Server()
         server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
 
         self.assertRaises(oauth.MissingSignature, server.verify_request,
@@ -1181,28 +1183,28 @@ class TestClient(unittest.TestCase):
             pass
 
         try:
-            client = oauth.Client(Blah())
+            client = Client(Blah())
             self.fail("Client.__init__() accepted invalid Consumer.")
         except ValueError:
             pass
 
         consumer = oauth.Consumer('token', 'secret')
         try:
-            client = oauth.Client(consumer, Blah())
+            client = Client(consumer, Blah())
             self.fail("Client.__init__() accepted invalid Token.")
         except ValueError:
             pass
 
     def test_access_token_get(self):
         """Test getting an access token via GET."""
-        client = oauth.Client(self.consumer, None)
+        client = Client(self.consumer, None)
         resp, content = client.request(self._uri('request_token'), "GET")
 
         self.assertEquals(int(resp['status']), 200)
 
     def test_access_token_post(self):
         """Test getting an access token via POST."""
-        client = oauth.Client(self.consumer, None)
+        client = Client(self.consumer, None)
         resp, content = client.request(self._uri('request_token'), "POST")
 
         self.assertEquals(int(resp['status']), 200)
@@ -1212,7 +1214,7 @@ class TestClient(unittest.TestCase):
         self.assertTrue('oauth_token_secret' in res)
 
     def _two_legged(self, method):
-        client = oauth.Client(self.consumer, None)
+        client = Client(self.consumer, None)
 
         return client.request(self._uri('two_legged'), method,
             body=urllib.urlencode(self.body))
@@ -1237,7 +1239,7 @@ class TestClient(unittest.TestCase):
         }
         content_type, body = self.create_simple_multipart_data(data)
 
-        client = oauth.Client(self.consumer, None)
+        client = Client(self.consumer, None)
         uri = self._uri('two_legged')
 
         def mockrequest(cl, ur, **kw):
@@ -1260,7 +1262,7 @@ class TestClient(unittest.TestCase):
     @mock.patch('httplib2.Http.request')
     def test_url_with_query_string(self, mockHttpRequest):
         uri = 'http://example.com/foo/bar/?show=thundercats&character=snarf'
-        client = oauth.Client(self.consumer, None)
+        client = Client(self.consumer, None)
         random_result = random.randint(1,100)
 
         def mockrequest(cl, ur, **kw):
@@ -1292,7 +1294,7 @@ class TestClient(unittest.TestCase):
     @mock.patch('httplib2.Http.request')
     @mock.patch('oauth2.Request.from_consumer_and_token')
     def test_multiple_values_for_a_key(self, mockReqConstructor, mockHttpRequest):
-        client = oauth.Client(self.consumer, None)
+        client = Client(self.consumer, None)
 
         request = oauth.Request("GET", "http://example.com/fetch.php", parameters={'multi': ['1', '2']})
         mockReqConstructor.return_value = request

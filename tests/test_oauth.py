@@ -1305,5 +1305,11 @@ class TestClient(unittest.TestCase):
         self.failUnless('multi=1' in mockHttpRequest.call_args[1]['body'])
         self.failUnless('multi=2' in mockHttpRequest.call_args[1]['body'])
 
+    def test_disable_ssl_certificate_validation(self):
+        client = oauth.Client(self.consumer,
+            disable_ssl_certificate_validation=True)
+
+        self.assertTrue(client.disable_ssl_certificate_validation)
+
 if __name__ == "__main__":
     unittest.main()

@@ -355,3 +355,19 @@ Gmail supports OAuth over IMAP and SMTP via a standard they call XOAUTH. This al
     conn.authenticate(url, consumer, token)
 
 
+# OAuth2 Example
+
+You might have thought from the name "oauth2" that this libary supported
+the OAuth2 standard. You would have been wrong, except for the fine efforts
+of https://github.com/dgouldin. Here is how you use it:
+
+    import oauth2
+    client = oauth2.Client2(CONSUMER_KEY, CONSUMER_SECRET, AUTHORIZATION_URL)
+    auth_url = client.authorization_url(redirect_uri = CALLBACK_URL)
+    print auth_url
+    # navigate to auth_url, to obtain code
+    token = client.access_token(code, CALLBACK_URL, endpoint='token')["access_token"]
+    print token
+    # use token to call secure APIs
+    (headers, content) = client.request(RESOURCE_URL, access_token=token)
+    ...

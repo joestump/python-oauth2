@@ -1,3 +1,6 @@
+
+https://secure.travis-ci.org/knowsis/python-oauth2.png?branch=master,develop
+
 # Overview
 
 This code was originally forked from [Leah Culver and Andy Smith's oauth.py code](http://github.com/leah/python-oauth/). Some of the tests come from a [fork by Vic Fryzel](http://github.com/shellsage/python-oauth), while a revamped Request class and more tests were merged in from [Mark Paschal's fork](http://github.com/markpasc/python-oauth). A number of notable differences exist between this code and its forefathers:

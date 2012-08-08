@@ -537,6 +537,10 @@ class Request(dict):
             query_params = cls._split_url_string(query_string)
             parameters.update(query_params)
  
+        # URL parameters.
+        param_str = urlparse.urlparse(http_url)[4] # query
+        url_params = cls._split_url_string(param_str)
+        parameters.update(url_params)
  
         if parameters:
             return cls(http_method, http_url, parameters)

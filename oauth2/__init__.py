@@ -466,6 +466,12 @@ class Request(dict):
                 else:
                     items.extend((to_utf8_if_string(key), to_utf8_if_string(item)) for item in value)
 
+        # Include any query string parameters from the provided URL
+        query = urlparse.urlparse(self.url)[4]
+
+        url_items = self._split_url_string(query).items()
+        url_items = [(to_utf8(k), to_utf8(v)) for k, v in url_items if k != 'oauth_signature' ]
+        items.extend(url_items)
 
         items.sort()
         encoded_str = urllib.urlencode(items)

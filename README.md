@@ -1,5 +1,13 @@
 
-https://secure.travis-ci.org/knowsis/python-oauth2.png?branch=master,develop
+
+
+.. image:: https://secure.travis-ci.org/knowsis/python-oauth2.png?branch=develop
+        :target: https://secure.travis-ci.org/knowsis/python-oauth2
+
+
+Forked from simplegeo/python-oauth2 as they do not seem to be maintaining the repository anymore
+
+
 
 # Overview
 

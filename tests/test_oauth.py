@@ -506,6 +506,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
         url = u'http://api.simplegeo.com:80/1.0/places/address.json?q=monkeys&category=animal&address=41+Decatur+St,+San+Francisc\u2766,+CA'
         req = oauth.Request("GET", url)
+        req.version ="2.0"
         self.failUnlessReallyEqual(req.normalized_url, u'http://api.simplegeo.com/1.0/places/address.json')
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), consumer, None)
         self.failUnlessReallyEqual(req['oauth_signature'], 'WhufgeZKyYpKsI70GZaiDaYwl6g=')
@@ -888,6 +889,16 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         # Test that a boned from_request() call returns None
         req = oauth.Request.from_request("GET", url)
         self.assertEquals(None, req)
+        
+        
+        
+        # Test that a boned from_request() call returns None
+        url_with_qs = 'http://www.oauth.net?foo=1&bar=2'
+        
+        req = oauth.Request.from_request("GET", url_with_qs)
+        params = req.get_normalized_parameters()
+        self.assertEquals(params, 'bar=2&foo=1')
+        
 
     def test_from_token_and_callback(self):
         url = "http://sp.example.com/"

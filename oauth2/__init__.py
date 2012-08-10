@@ -475,6 +475,7 @@ class Request(dict):
 
         items.sort()
         encoded_str = urllib.urlencode(items)
+        
         # Encode signature parameters per Oauth Core 1.0 protocol
         # spec draft 7, section 3.6
         # (http://tools.ietf.org/html/draft-hammer-oauth-07#section-3.6)
@@ -485,11 +486,6 @@ class Request(dict):
         """Set the signature parameter to the result of sign."""
 
         if not self.is_form_encoded:
-            # according to
-            # http://oauth.googlecode.com/svn/spec/ext/body_hash/1.0/oauth-bodyhash.html
-            # section 4.1.1 "OAuth Consumers MUST NOT include an
-            # oauth_body_hash parameter on requests with form-encoded
-            # request bodies."
             self['oauth_body_hash'] = base64.b64encode(sha(self.body).digest())
 
         if 'oauth_consumer_key' not in self:
@@ -500,24 +496,25 @@ class Request(dict):
 
         self['oauth_signature_method'] = signature_method.name
         self['oauth_signature'] = signature_method.sign(self, consumer, token)
- 
+
     @classmethod
     def make_timestamp(cls):
         """Get seconds since epoch (UTC)."""
         return str(int(time.time()))
- 
+
     @classmethod
     def make_nonce(cls):
         """Generate pseudorandom number."""
         return str(random.randint(0, 100000000))
- 
+
     @classmethod
     def from_request(cls, http_method, http_url, headers=None, parameters=None,
             query_string=None):
         """Combines multiple parameter sources."""
+
         if parameters is None:
             parameters = {}
- 
+
         # Headers
         if headers and 'Authorization' in headers:
             auth_header = headers['Authorization']
@@ -531,22 +528,25 @@ class Request(dict):
                 except:
                     raise Error('Unable to parse OAuth parameters from '
                         'Authorization header.')
- 
+
         # GET or POST query string.
         if query_string:
             query_params = cls._split_url_string(query_string)
             parameters.update(query_params)
- 
+
         # URL parameters.
         param_str = urlparse.urlparse(http_url)[4] # query
         url_params = cls._split_url_string(param_str)
         parameters.update(url_params)
- 
+        
+        res = urlparse.urlparse(http_url)
+        url = urlparse.urlunparse((res[0],res[1],res[2],'','',''))
+        
         if parameters:
-            return cls(http_method, http_url, parameters)
- 
+            return cls(http_method, url, parameters)
+
         return None
- 
+
     @classmethod
     def from_consumer_and_token(cls, consumer, token=None,
             http_method=HTTP_METHOD, http_url=None, parameters=None,
@@ -560,7 +560,7 @@ class Request(dict):
             'oauth_nonce': cls.make_nonce(),
             'oauth_version': cls.version,
         }
- 
+
         defaults.update(parameters)
         parameters = defaults
  
@@ -568,24 +568,24 @@ class Request(dict):
             parameters['oauth_token'] = token.key
             if token.verifier:
                 parameters['oauth_verifier'] = token.verifier
- 
+
         return Request(http_method, http_url, parameters, body=body, 
                        is_form_encoded=is_form_encoded)
- 
+
     @classmethod
     def from_token_and_callback(cls, token, callback=None, 
         http_method=HTTP_METHOD, http_url=None, parameters=None):
 
         if not parameters:
             parameters = {}
- 
+
         parameters['oauth_token'] = token.key
- 
+
         if callback:
             parameters['oauth_callback'] = callback
- 
+
         return cls(http_method, http_url, parameters)
- 
+
     @staticmethod
     def _split_header(header):
         """Turn Authorization: header into parameters."""
@@ -602,7 +602,7 @@ class Request(dict):
             # Remove quotes and unescape the value.
             params[param_parts[0]] = urllib.unquote(param_parts[1].strip('\"'))
         return params
- 
+
     @staticmethod
     def _split_url_string(param_str):
         """Turn URL string into parameters."""

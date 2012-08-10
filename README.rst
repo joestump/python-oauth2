@@ -4,14 +4,7 @@ python-oauth2
 # Forked from simplegeo/python-oauth2 
 Seeing as they do not seem to be maintaining the repository anymore
 
-
-Master
 [![Build Status](https://secure.travis-ci.org/knowsis/python-oauth2.png?branch=master)](http://travis-ci.org/knowsis/python-oauth2)
-
-Develop
-[![Build Status](https://secure.travis-ci.org/knowsis/python-oauth2.png?branch=develop)](http://travis-ci.org/knowsis/python-oauth2)
-
-
 
 # Overview
 

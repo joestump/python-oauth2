@@ -481,10 +481,10 @@ class Request(dict):
         # Spaces must be encoded with "%20" instead of "+"
         return encoded_str.replace('+', '%20').replace('%7E', '~')
 
-    def sign_request(self, signature_method, consumer, token):
+    def sign_request(self, signature_method, consumer, token, include_body_hash=True):
         """Set the signature parameter to the result of sign."""
 
-        if not self.is_form_encoded:
+        if not self.is_form_encoded and include_body_hash:
             # according to
             # http://oauth.googlecode.com/svn/spec/ext/body_hash/1.0/oauth-bodyhash.html
             # section 4.1.1 "OAuth Consumers MUST NOT include an
@@ -537,11 +537,6 @@ class Request(dict):
             query_params = cls._split_url_string(query_string)
             parameters.update(query_params)
  
-        # URL parameters.
-        param_str = urlparse.urlparse(http_url)[4] # query
-        url_params = cls._split_url_string(param_str)
-        parameters.update(url_params)
- 
         if parameters:
             return cls(http_method, http_url, parameters)
  
@@ -569,8 +564,8 @@ class Request(dict):
             if token.verifier:
                 parameters['oauth_verifier'] = token.verifier
  
-        return Request(http_method, http_url, parameters, body=body, 
-                       is_form_encoded=is_form_encoded)
+        return cls(http_method, http_url, parameters, body=body,
+                   is_form_encoded=is_form_encoded)
  
     @classmethod
     def from_token_and_callback(cls, token, callback=None, 
@@ -608,7 +603,10 @@ class Request(dict):
         """Turn URL string into parameters."""
         parameters = parse_qs(param_str.encode('utf-8'), keep_blank_values=True)
         for k, v in parameters.iteritems():
-            parameters[k] = urllib.unquote(v[0])
+            if len(v) == 1:
+                parameters[k] = urllib.unquote(v[0])
+            else:
+                parameters[k] = [ urllib.unquote(i) for i in v ]
         return parameters
 
 
@@ -637,7 +635,7 @@ class Client(httplib2.Http):
         self.method = method
 
     def request(self, uri, method="GET", body='', headers=None, 
-        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
+        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None, include_body_hash=True):
         DEFAULT_POST_CONTENT_TYPE = 'application/x-www-form-urlencoded'
 
         if not isinstance(headers, dict):
@@ -659,7 +657,7 @@ class Client(httplib2.Http):
             token=self.token, http_method=method, http_url=uri, 
             parameters=parameters, body=body, is_form_encoded=is_form_encoded)
 
-        req.sign_request(self.method, self.consumer, self.token)
+        req.sign_request(self.method, self.consumer, self.token, include_body_hash=include_body_hash)
 
         schema, rest = urllib.splittype(uri)
         if rest.startswith('//'):

@@ -889,6 +889,13 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         req = oauth.Request.from_request("GET", url)
         self.assertEquals(None, req)
 
+    def test_from_request_with_query_string(self):
+        url = "http://sp.example.com/"
+        qs = 'multi=BAR&multi=FOO&multi_same=FOO&multi_same=Foo&oath_consumer_key=0685bd9184jfhq22&oauth_nonce=4572616e48616d6d65724c61686176&oauth_signature_method=HMAC_SHA1&oauth_timestamp=137131200&oauth_token=ad180jjd733klru7&oauth_version=1.0'
+        req = oauth.Request.from_request('GET', url, query_string=qs)
+        res = req.get_normalized_parameters()
+        self.assertEquals(qs, res)
+
     def test_from_token_and_callback(self):
         url = "http://sp.example.com/"
 

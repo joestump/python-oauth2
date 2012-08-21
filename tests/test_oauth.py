@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# coding=utf-8
 
 """
 The MIT License
@@ -33,6 +33,7 @@ import urllib
 import urlparse
 from types import ListType
 import mock
+from mock import patch
 import httplib2
 
 # Fix for python2.5 compatibility
@@ -49,19 +50,19 @@ class TestError(unittest.TestCase):
     def test_message(self):
         try:
             raise oauth.Error
-        except oauth.Error, e:
+        except oauth.Error as e:
             self.assertEqual(e.message, 'OAuth error occurred.')
 
         msg = 'OMG THINGS BROKE!!!!'
         try:
             raise oauth.Error(msg)
-        except oauth.Error, e:
+        except oauth.Error as e:
             self.assertEqual(e.message, msg)
 
     def test_str(self):
         try:
             raise oauth.Error
-        except oauth.Error, e:
+        except oauth.Error as e:
             self.assertEquals(str(e), 'OAuth error occurred.')
 
 class TestGenerateFunctions(unittest.TestCase):
@@ -506,6 +507,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
         url = u'http://api.simplegeo.com:80/1.0/places/address.json?q=monkeys&category=animal&address=41+Decatur+St,+San+Francisc\u2766,+CA'
         req = oauth.Request("GET", url)
+        req.version ="2.0"
         self.failUnlessReallyEqual(req.normalized_url, u'http://api.simplegeo.com/1.0/places/address.json')
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), consumer, None)
         self.failUnlessReallyEqual(req['oauth_signature'], 'WhufgeZKyYpKsI70GZaiDaYwl6g=')
@@ -573,6 +575,19 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         expected='oauth_consumer_key=mykey&oauth_nonce=79815175&oauth_signature_method=HMAC-SHA1&oauth_timestamp=1295397962&oauth_version=1.0&offset=10&q=car'
 
         self.assertEquals(expected, res)
+
+    def test_get_normalized_parameters_multiple(self):
+
+        url = "http://example.com/v2/search/videos?oauth_nonce=79815175&oauth_timestamp=1295397962&oauth_consumer_key=mykey&oauth_signature_method=HMAC-SHA1&oauth_version=1.0&offset=10&oauth_signature=spWLI%2FGQjid7sQVd5%2FarahRxzJg%3D&tag=one&tag=two"
+     	expected='oauth_consumer_key=mykey&oauth_nonce=79815175&oauth_signature_method=HMAC-SHA1&oauth_timestamp=1295397962&oauth_version=1.0&offset=10&tag=one&tag=two'
+    
+        req = oauth.Request("GET", url)
+    
+        res = req.get_normalized_parameters()
+        
+     	self.assertEquals(expected, res)
+
+
 
     def test_get_normalized_parameters_from_url(self):
         # example copied from
@@ -888,6 +903,16 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         # Test that a boned from_request() call returns None
         req = oauth.Request.from_request("GET", url)
         self.assertEquals(None, req)
+        
+        
+        
+        # Test that a boned from_request() call returns None
+        url_with_qs = 'http://www.oauth.net?foo=1&bar=2'
+        
+        req = oauth.Request.from_request("GET", url_with_qs)
+        params = req.get_normalized_parameters()
+        self.assertEquals(params, 'bar=2&foo=1')
+        
 
     def test_from_token_and_callback(self):
         url = "http://sp.example.com/"
@@ -1192,30 +1217,40 @@ class TestClient(unittest.TestCase):
             self.fail("Client.__init__() accepted invalid Token.")
         except ValueError:
             pass
-
+    
     def test_access_token_get(self):
         """Test getting an access token via GET."""
-        client = oauth.Client(self.consumer, None)
-        resp, content = client.request(self._uri('request_token'), "GET")
-
-        self.assertEquals(int(resp['status']), 200)
+        
+        with patch('httplib2.Http.request') as mockRequest:
+        
+            mockRequest.return_value = {'status':200},''        
+            client = oauth.Client(self.consumer, None)
+            resp, content = client.request(self._uri('request_token'), "GET")
+            self.assertEquals(int(resp['status']), 200)
 
     def test_access_token_post(self):
-        """Test getting an access token via POST."""
-        client = oauth.Client(self.consumer, None)
-        resp, content = client.request(self._uri('request_token'), "POST")
+        """Test getting an access token via POST."""    
 
-        self.assertEquals(int(resp['status']), 200)
+        with patch('httplib2.Http.request') as mockRequest:
+        
+            mockRequest.return_value = {'status':200},'oauth_token=123&oauth_token_secret=abcd'        
 
-        res = dict(parse_qsl(content))
-        self.assertTrue('oauth_token' in res)
-        self.assertTrue('oauth_token_secret' in res)
+            client = oauth.Client(self.consumer, None)
+            resp, content = client.request(self._uri('request_token'), "POST")
+
+            self.assertEquals(int(resp['status']), 200)
+
+            res = dict(parse_qsl(content))
+            self.assertTrue('oauth_token' in res)
+            self.assertTrue('oauth_token_secret' in res)
 
     def _two_legged(self, method):
         client = oauth.Client(self.consumer, None)
-
-        return client.request(self._uri('two_legged'), method,
-            body=urllib.urlencode(self.body))
+        with patch('httplib2.Http.request') as mockRequest:
+        
+            mockRequest.return_value = {'status':200},'' 
+            return client.request(self._uri('two_legged'), method,
+                body=urllib.urlencode(self.body))
 
     def test_two_legged_post(self):
         """A test of a two-legged OAuth POST request."""

@@ -129,13 +129,10 @@ def to_unicode_optional_iterator(x):
     if isinstance(x, basestring):
         return to_unicode(x)
 
-    try:
-        l = list(x)
-    except TypeError, e:
-        assert 'is not iterable' in str(e)
+    if not hasattr(x, '__iter__'):
         return x
-    else:
-        return [ to_unicode(e) for e in l ]
+
+    return [ to_unicode(e) for e in list(x) ]
 
 def to_utf8_optional_iterator(x):
     """
@@ -145,13 +142,10 @@ def to_utf8_optional_iterator(x):
     if isinstance(x, basestring):
         return to_utf8(x)
 
-    try:
-        l = list(x)
-    except TypeError, e:
-        assert 'is not iterable' in str(e)
+    if not hasattr(x, '__iter__'):
         return x
-    else:
-        return [ to_utf8_if_string(e) for e in l ]
+
+    return [ to_utf8_if_string(e) for e in list(x) ]
 
 def escape(s):
     """Escape a URL including any /."""

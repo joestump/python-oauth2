@@ -40,9 +40,10 @@ except ImportError:
 
 try:
     from hashlib import sha1
-    sha = sha1
+    sha_new = sha = sha1
 except ImportError:
     # hashlib was added in Python 2.5
+    import sha as sha_new
     from sha import sha
 
 import _version
@@ -828,7 +829,7 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
         """Builds the base signature string."""
         key, raw = self.signing_base(request, consumer, token)
 
-        hashed = hmac.new(key, raw, sha)
+        hashed = hmac.new(key, raw, sha_new)
 
         # Calculate the digest base 64.
         return binascii.b2a_base64(hashed.digest())[:-1]

@@ -43,7 +43,7 @@ try:
     sha = sha1
 except ImportError:
     # hashlib was added in Python 2.5
-    import sha
+    from sha import sha
 
 import _version
 

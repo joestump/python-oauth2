@@ -452,13 +452,10 @@ class Request(dict):
             if isinstance(value, basestring):
                 items.append((to_utf8_if_string(key), to_utf8(value)))
             else:
-                try:
-                    value = list(value)
-                except TypeError, e:
-                    assert 'is not iterable' in str(e)
-                    items.append((to_utf8_if_string(key), to_utf8_if_string(value)))
+                if hasattr(value, '__iter__'):
+                    items.extend((to_utf8_if_string(key), to_utf8_if_string(item)) for item in list(value))
                 else:
-                    items.extend((to_utf8_if_string(key), to_utf8_if_string(item)) for item in value)
+                    items.append((to_utf8_if_string(key), to_utf8_if_string(value)))
 
         # Include any query string parameters from the provided URL
         query = urlparse.urlparse(self.url)[4]

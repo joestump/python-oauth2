@@ -337,7 +337,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
             pass
 
     def test_url_query(self):
-        url = "https://www.google.com/m8/feeds/contacts/default/full/?alt=json&max-contacts=10"
+        url = "https://www.google.com/m8/feeds/contacts/default/full/?alt=json&max-contacts=10&a=1&a=2"
         normalized_url = urlparse.urlunparse(urlparse.urlparse(url)[:3] + (None, None, None))
         method = "GET"
         
@@ -459,10 +459,14 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
             'oauth_signature_method': "HMAC-SHA1",
             'oauth_token': "ad180jjd733klru7",
             'oauth_signature': "wOJIO9A2W5mFwDgiDvZbTSMK%2FPY%3D",
+            'multi': ['FOO','BAR'],
         }
+        req = oauth.Request("GET", url, parameters=params)
 
-        req = oauth.Request("GET", url, params)
-        exp = urlparse.urlparse("%s?%s" % (url, urllib.urlencode(params)))
+        flat = [('multi','FOO'),('multi','BAR')]
+        del params['multi']
+        flat.extend(params.items())
+        exp = urlparse.urlparse("%s?%s" % (url, urllib.urlencode(flat)))
         res = urlparse.urlparse(req.to_url())
         self.assertEquals(exp.scheme, res.scheme)
         self.assertEquals(exp.netloc, res.netloc)
@@ -471,7 +475,8 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         a = parse_qs(exp.query)
         b = parse_qs(res.query)
         self.assertEquals(a, b)
-    
+
+
     def test_to_url_with_query(self):
         url = "https://www.google.com/m8/feeds/contacts/default/full/?alt=json&max-contacts=10"
 
@@ -802,7 +807,8 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         params = {
             'oauth_version': "1.0",
             'oauth_nonce': "4572616e48616d6d65724c61686176",
-            'oauth_timestamp': "137131200"
+            'oauth_timestamp': "137131200",
+            'multi':['foo', 'bar'],
         }
 
         tok = oauth.Token(key="tok-test-key", secret="tok-test-secret")
@@ -813,9 +819,9 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         req = oauth.Request(method="GET", url=url, parameters=params)
 
         methods = {
-            'DX01TdHws7OninCLK9VztNTH1M4=': oauth.SignatureMethod_HMAC_SHA1(),
+            'wP01jr2KUdSJ8Kbylra2Q4qwINk=': oauth.SignatureMethod_HMAC_SHA1(),
             'con-test-secret&tok-test-secret': oauth.SignatureMethod_PLAINTEXT()
-            }
+        }
 
         for exp, method in methods.items():
             req.sign_request(method, con, tok)
@@ -826,23 +832,23 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         url = "http://sp.example.com/\xe2\x80\x99" # utf-8 bytes
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, tok)
-        self.assertEquals(req['oauth_signature'], 'loFvp5xC7YbOgd9exIO6TxB7H4s=')
+        self.assertEquals(req['oauth_signature'], 'vJK7BqHR2QDF7v4o+WwFvk/NVcg=')
 
         url = u'http://sp.example.com/\u2019' # Python unicode object
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, tok)
-        self.assertEquals(req['oauth_signature'], 'loFvp5xC7YbOgd9exIO6TxB7H4s=')
+        self.assertEquals(req['oauth_signature'], 'vJK7BqHR2QDF7v4o+WwFvk/NVcg=')
 
         # Also if there are non-ascii chars in the query args.
         url = "http://sp.example.com/?q=\xe2\x80\x99" # utf-8 bytes
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, tok)
-        self.assertEquals(req['oauth_signature'], 'IBw5mfvoCsDjgpcsVKbyvsDqQaU=')
+        self.assertEquals(req['oauth_signature'], 'cYkoCVyghnoMcSs1Z1+Mdi2LpMI=')
 
         url = u'http://sp.example.com/?q=\u2019' # Python unicode object
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, tok)
-        self.assertEquals(req['oauth_signature'], 'IBw5mfvoCsDjgpcsVKbyvsDqQaU=')
+        self.assertEquals(req['oauth_signature'], 'cYkoCVyghnoMcSs1Z1+Mdi2LpMI=')
 
     def test_from_request(self):
         url = "http://sp.example.com/"
@@ -881,7 +887,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
         exp = parse_qs(qs, keep_blank_values=False)
         for k, v in exp.iteritems():
-            exp[k] = urllib.unquote(v[0])
+            exp[k] = map(urllib.unquote, v)
 
         self.assertEquals(exp, req.copy())
 

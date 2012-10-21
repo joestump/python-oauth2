@@ -420,8 +420,18 @@ class Request(dict):
             query = base_url[4]
         query = parse_qs(query.encode('utf-8'))
         for k, v in self.items():
-            query.setdefault(k, []).append(v)
-        
+
+            if isinstance(v, basestring):
+                query.setdefault(to_utf8_if_string(k), []).append(to_utf8(v))
+            else:
+                try:
+                    v = list(v)
+                except TypeError, e:
+                    assert 'is not iterable' in str(e)
+                    query.setdefault(to_utf8_if_string(k), []).append(to_utf8_if_string(v))
+                else:
+                    query.setdefault(to_utf8_if_string(k), []).extend(to_utf8_if_string(item) for item in v)
+
         try:
             scheme = base_url.scheme
             netloc = base_url.netloc
@@ -469,10 +479,25 @@ class Request(dict):
         # Include any query string parameters from the provided URL
         query = urlparse.urlparse(self.url)[4]
 
-        url_items = self._split_url_string(query).items()
-        url_items = [(to_utf8(k), to_utf8(v)) for k, v in url_items if k != 'oauth_signature' ]
-        items.extend(url_items)
 
+        _url_items = self._split_url_string(query).items()
+        url_items = []
+        for url_item_key,url_item_value in _url_items:
+            if url_item_key == "oauth_signature":
+                continue
+
+            if isinstance(url_item_value, basestring):
+                url_items.append((to_utf8(url_item_key), to_utf8(url_item_value)))
+            else:
+                try:
+                    url_item_value = list(url_item_value)
+                except TypeError, e:
+                    assert 'is not iterable' in str(e)
+                    url_items.append((to_utf8(url_item_key), to_utf8_if_string(url_item_value)))
+                else:
+                    url_items.extend((to_utf8(url_item_key), to_utf8_if_string(item)) for item in url_item_value)
+
+        items.extend(url_items)
         items.sort()
         encoded_str = urllib.urlencode(items)
         # Encode signature parameters per Oauth Core 1.0 protocol
@@ -608,7 +633,8 @@ class Request(dict):
         """Turn URL string into parameters."""
         parameters = parse_qs(param_str.encode('utf-8'), keep_blank_values=True)
         for k, v in parameters.iteritems():
-            parameters[k] = urllib.unquote(v[0])
+            v = map(urllib.unquote, v)
+            parameters[to_utf8(k)] = to_utf8_optional_iterator(v)
         return parameters
 
 

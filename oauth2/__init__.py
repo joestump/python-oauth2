@@ -348,6 +348,8 @@ class Request(dict):
             for k, v in parameters.iteritems():
                 k = to_unicode(k)
                 v = to_unicode_optional_iterator(v)
+                if k.startswith("oauth_") and type(v) in [list, tuple]:
+                    v = v[0]
                 self[k] = v
         self.body = body
         self.is_form_encoded = is_form_encoded

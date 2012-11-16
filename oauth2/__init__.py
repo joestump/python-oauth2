@@ -637,7 +637,7 @@ class Client(httplib2.Http):
         self.method = method
 
     def request(self, uri, method="GET", body='', headers=None, 
-        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
+        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None,auth_method=None):
         DEFAULT_POST_CONTENT_TYPE = 'application/x-www-form-urlencoded'
 
         if not isinstance(headers, dict):
@@ -670,11 +670,19 @@ class Client(httplib2.Http):
 
         realm = schema + ':' + hierpart + host
 
-        if is_form_encoded:
+	if auth_method is None:
+            if is_form_encoded:
+		auth_method="body"
+            elif method == "GET":
+		auth_method="query_string"
+            else:
+	    	auth_method="authorization"
+        
+	if auth_method == "body":
             body = req.to_postdata()
-        elif method == "GET":
+        elif auth_method == "query_string":
             uri = req.to_url()
-        else:
+        elif auth_method == "authorization":
             headers.update(req.to_header(realm=realm))
 
         return httplib2.Http.request(self, uri, method=method, body=body,

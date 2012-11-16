@@ -412,7 +412,7 @@ class Request(dict):
  
     def to_url(self):
         """Serialize as a URL for a GET request."""
-        base_url = urlparse.urlparse(self.url)
+        base_url = urlparse.urlparse(self.url.encode('utf-8'))
         try:
             query = base_url.query
         except AttributeError:
@@ -420,7 +420,8 @@ class Request(dict):
             query = base_url[4]
         query = parse_qs(query)
         for k, v in self.items():
-            query.setdefault(k, []).append(v)
+            query.setdefault(k.encode('utf-8'), []).append(
+                to_utf8_optional_iterator(v))
         
         try:
             scheme = base_url.scheme

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-from setuptools import setup
-import os, re
+import os, re, sys
+
+from setuptools import setup, find_packages
 
 PKG='oauth2'
 VERSIONFILE = os.path.join('oauth2', '_version.py')
@@ -15,7 +16,7 @@ else:
     if mo:
         mverstr = mo.group(1)
     else:
-        print "unable to find version in %s" % (VERSIONFILE,)
+        sys.stdout.write("unable to find version in %s\n" % (VERSIONFILE,))
         raise RuntimeError("if %s.py exists, it must be well-formed" % (VERSIONFILE,))
     AVSRE = r"^auto_build_num *= *['\"]([^'\"]*)['\"]"
     mo = re.search(AVSRE, verstrline, re.M)

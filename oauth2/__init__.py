@@ -610,7 +610,7 @@ class Request(dict):
         parameters = []
         for k, v in parsed.iteritems():
             for w in v:
-                parameters.append((k, urllib.unquote(w)))
+                parameters.append((k, w))
         return parameters
 
 

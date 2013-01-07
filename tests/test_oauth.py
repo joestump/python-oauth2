@@ -881,7 +881,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
         exp = parse_qs(qs, keep_blank_values=False)
         for k, v in exp.iteritems():
-            exp[k] = urllib.unquote(v[0])
+            exp[k] = v[0]
 
         self.assertEquals(exp, req.copy())
 
@@ -923,6 +923,14 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         self.assertEquals(req['oauth_token'], tok.key)
         self.assertEquals(req['oauth_consumer_key'], con.key)
         self.assertEquals(tok.verifier, req['oauth_verifier'])
+
+    def test_split_url_string(self):
+        param_str = u"foo=bar&bar=édulcoré&baz=%25de"
+
+        params = oauth.Request._split_url_string(param_str)
+        params.sort()
+        self.assertEquals(params, [('bar', 'édulcoré'), ('baz', '%de'), ('foo', 'bar')])
+
 
 class SignatureMethod_Bad(oauth.SignatureMethod):
     name = "BAD"

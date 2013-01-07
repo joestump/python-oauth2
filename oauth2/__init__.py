@@ -418,7 +418,7 @@ class Request(dict):
         except AttributeError:
             # must be python <2.5
             query = base_url[4]
-        query = parse_qs(query)
+        query = parse_qs(query.encode('utf-8'))
         for k, v in self.items():
             query.setdefault(k, []).append(v)
         
@@ -469,7 +469,7 @@ class Request(dict):
         # Include any query string parameters from the provided URL
         query = urlparse.urlparse(self.url)[4]
 
-        url_items = self._split_url_string(query).items()
+        url_items = self._split_url_string(query)
         url_items = [(to_utf8(k), to_utf8(v)) for k, v in url_items if k != 'oauth_signature' ]
         items.extend(url_items)
 
@@ -606,9 +606,11 @@ class Request(dict):
     @staticmethod
     def _split_url_string(param_str):
         """Turn URL string into parameters."""
-        parameters = parse_qs(param_str.encode('utf-8'), keep_blank_values=True)
-        for k, v in parameters.iteritems():
-            parameters[k] = urllib.unquote(v[0])
+        parsed = parse_qs(param_str.encode('utf-8'), keep_blank_values=True)
+        parameters = []
+        for k, v in parsed.iteritems():
+            for w in v:
+                parameters.append((k, w))
         return parameters
 
 

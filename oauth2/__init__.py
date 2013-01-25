@@ -637,7 +637,7 @@ class Client(httplib2.Http):
         self.method = method
 
     def request(self, uri, method="GET", body='', headers=None, 
-        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
+        connection_type=None, **kwargs):
         DEFAULT_POST_CONTENT_TYPE = 'application/x-www-form-urlencoded'
 
         if not isinstance(headers, dict):
@@ -677,9 +677,9 @@ class Client(httplib2.Http):
         else:
             headers.update(req.to_header(realm=realm))
 
+        kwargs['redirections'] = kwargs.get('redirections', httplib2.DEFAULT_MAX_REDIRECTS)
         return httplib2.Http.request(self, uri, method=method, body=body,
-            headers=headers, redirections=redirections,
-            connection_type=connection_type)
+            headers=headers, connection_type=connection_type, **kwargs)
 
 
 class Server(object):

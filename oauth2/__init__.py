@@ -625,14 +625,14 @@ class Client(httplib2.Http):
         self.signer.set_signature_method(method)
 
     def request(self, uri, method="GET", body='', headers=None, **kwargs):
-        ( method, uri, headers, body ) = self.signer.create_request(
+        (method, uri, headers, body) = self.signer.create_request(
             uri, method=method, headers=headers, body=body,
         )
 
         # These are pass-through parameters that the old implementation defaulted
         # to these values.
         kwargs['redirections'] = kwargs.get('redirections', httplib2.DEFAULT_MAX_REDIRECTS)
-        kwargs['connection_type'] = kwargs.get('connection_type')
+        kwargs['connection_type'] = kwargs.get('connection_type', None)
 
         return httplib2.Http.request(
             self, uri, method=method, body=body, headers=headers, **kwargs
@@ -698,7 +698,8 @@ class Signer(object):
         else:
             headers.update(req.to_header(realm=realm))
 
-        return ( method, uri, headers, body )
+        return (method, uri, headers, body)
+
 
 class Server(object):
     """A skeletal implementation of a service provider, providing protected

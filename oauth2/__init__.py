@@ -397,7 +397,7 @@ class Request(dict):
         if params_header:
             auth_header = "%s, %s" % (auth_header, params_header)
  
-        return {'Authorization': auth_header}
+        return {'Authorization': [auth_header]}
  
     def to_postdata(self):
         """Serialize as post data for a POST request."""
@@ -618,6 +618,30 @@ class Client(httplib2.Http):
     def __init__(self, consumer, token=None, cache=None, timeout=None,
         proxy_info=None):
 
+        self.signer = Signer(consumer, token)
+        httplib2.Http.__init__(self, cache=cache, timeout=timeout, proxy_info=proxy_info)
+
+    def set_signature_method(self, method):
+        self.signer.set_signature_method(method)
+
+    def request(self, uri, method="GET", body='', headers=None, **kwargs):
+        (method, uri, headers, body) = self.signer.create_request(
+            uri, method=method, headers=headers, body=body,
+        )
+
+        # These are pass-through parameters that the old implementation defaulted
+        # to these values.
+        kwargs['redirections'] = kwargs.get('redirections', httplib2.DEFAULT_MAX_REDIRECTS)
+        kwargs['connection_type'] = kwargs.get('connection_type', None)
+
+        return httplib2.Http.request(
+            self, uri, method=method, body=body, headers=headers, **kwargs
+        )
+
+class Signer(object):
+    """Signer is the thing that converts the data into a sendable request."""
+
+    def __init__(self, consumer, token=None):
         if consumer is not None and not isinstance(consumer, Consumer):
             raise ValueError("Invalid consumer.")
 
@@ -628,32 +652,27 @@ class Client(httplib2.Http):
         self.token = token
         self.method = SignatureMethod_HMAC_SHA1()
 
-        httplib2.Http.__init__(self, cache=cache, timeout=timeout, proxy_info=proxy_info)
-
     def set_signature_method(self, method):
         if not isinstance(method, SignatureMethod):
             raise ValueError("Invalid signature method.")
 
         self.method = method
 
-    def request(self, uri, method="GET", body='', headers=None, 
-        redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
-        DEFAULT_POST_CONTENT_TYPE = 'application/x-www-form-urlencoded'
+    def create_request(self, uri, method="GET", headers=None, body="", parameters=None):
+        DEFAULT_POST_CONTENT_TYPE = "application/x-www-form-urlencoded"
 
         if not isinstance(headers, dict):
             headers = {}
 
         if method == "POST":
-            headers['Content-Type'] = headers.get('Content-Type', 
-                DEFAULT_POST_CONTENT_TYPE)
+            headers["Content-Type"] = [ headers.get(
+                "Content-Type", DEFAULT_POST_CONTENT_TYPE
+            ) ]
 
-        is_form_encoded = \
-            headers.get('Content-Type') == 'application/x-www-form-urlencoded'
+        is_form_encoded = headers.get("Content-Type") == [ DEFAULT_POST_CONTENT_TYPE ]
 
         if is_form_encoded and body:
             parameters = parse_qs(body)
-        else:
-            parameters = None
 
         req = Request.from_consumer_and_token(self.consumer, 
             token=self.token, http_method=method, http_url=uri, 
@@ -677,9 +696,7 @@ class Client(httplib2.Http):
         else:
             headers.update(req.to_header(realm=realm))
 
-        return httplib2.Http.request(self, uri, method=method, body=body,
-            headers=headers, redirections=redirections,
-            connection_type=connection_type)
+        return (method, uri, headers, body)
 
 
 class Server(object):

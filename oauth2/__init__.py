@@ -397,7 +397,7 @@ class Request(dict):
         if params_header:
             auth_header = "%s, %s" % (auth_header, params_header)
  
-        return {'Authorization': auth_header}
+        return {'Authorization': [auth_header]}
  
     def to_postdata(self):
         """Serialize as post data for a POST request."""
@@ -658,23 +658,21 @@ class Signer(object):
 
         self.method = method
 
-    def create_request(self, uri, method="GET", headers=None, body=""):
+    def create_request(self, uri, method="GET", headers=None, body="", parameters=None):
         DEFAULT_POST_CONTENT_TYPE = "application/x-www-form-urlencoded"
 
         if not isinstance(headers, dict):
             headers = {}
 
         if method == "POST":
-            headers["Content-Type"] = headers.get(
+            headers["Content-Type"] = [ headers.get(
                 "Content-Type", DEFAULT_POST_CONTENT_TYPE
-            )
+            ) ]
 
-        is_form_encoded = headers.get("Content-Type") == DEFAULT_POST_CONTENT_TYPE
+        is_form_encoded = headers.get("Content-Type") == [ DEFAULT_POST_CONTENT_TYPE ]
 
         if is_form_encoded and body:
             parameters = parse_qs(body)
-        else:
-            parameters = None
 
         req = Request.from_consumer_and_token(self.consumer, 
             token=self.token, http_method=method, http_url=uri, 

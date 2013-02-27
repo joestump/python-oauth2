@@ -137,7 +137,7 @@ can be easily translated to a web application.
 
 # Logging into Django w/ Twitter
 
-Twitter also has the ability to authenticate a user [via an OAuth flow](http://apiwiki.twitter.com/Sign-in-with-Twitter). This
+Twitter also has the ability to authenticate a user [via an OAuth flow](https://dev.twitter.com/docs/auth/sign-twitter). This
 flow is exactly like the three-legged OAuth flow, except you send them to a 
 slightly different URL to authorize them. 
 

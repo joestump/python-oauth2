@@ -98,11 +98,9 @@ def to_unicode(s):
     """ Convert to unicode, raise exception with instructive error
     message if s is not unicode, ascii, or utf-8. """
     if not isinstance(s, str):
-        if not isinstance(s, str) and not isinstance(s, bytes):
-            raise TypeError('You are required to pass either unicode, bytes containing unicode or string here, not: %r (%s)' % (type(s), s))
         try:
             s = s.decode('utf-8')
-        except UnicodeDecodeError as le:
+        except AttributeError as le:
             raise TypeError('You are required to pass either a unicode object or a utf-8 string here. You passed a Python string object which contained non-utf-8: %r. The UnicodeDecodeError that resulted from attempting to interpret it as utf-8 was: %s' % (s, le,))
     return s
 
@@ -608,6 +606,8 @@ class Request(dict):
     def _split_url_string(param_str):
         """Turn URL string into parameters."""
         parameters = parse_qs(param_str, keep_blank_values=True)
+
+                         
         for k, v in parameters.items():
             parameters[k] = urllib.parse.unquote(v[0])
         return parameters

@@ -98,8 +98,8 @@ def to_unicode(s):
     """ Convert to unicode, raise exception with instructive error
     message if s is not unicode, ascii, or utf-8. """
     if not isinstance(s, str):
-        if not isinstance(s, str):
-            raise TypeError('You are required to pass either unicode or string here, not: %r (%s)' % (type(s), s))
+        if not isinstance(s, str) and not isinstance(s, bytes):
+            raise TypeError('You are required to pass either unicode, bytes containing unicode or string here, not: %r (%s)' % (type(s), s))
         try:
             s = s.decode('utf-8')
         except UnicodeDecodeError as le:
@@ -155,7 +155,9 @@ def to_utf8_optional_iterator(x):
 
 def escape(s):
     """Escape a URL including any /."""
-    return urllib.parse.quote(s.encode('utf-8'), safe='~')
+    if not isinstance(s, bytes):
+        s = s.encode('utf-8')
+    return urllib.parse.quote(s, safe='~')
 
 def generate_timestamp():
     """Get seconds since epoch (UTC)."""
@@ -468,7 +470,6 @@ class Request(dict):
 
         # Include any query string parameters from the provided URL
         query = urllib.parse.urlparse(self.url)[4]
-
         url_items = list(self._split_url_string(query).items())
         url_items = [(to_utf8(k), to_utf8(v)) for k, v in url_items if k != 'oauth_signature' ]
         items.extend(url_items)
@@ -490,7 +491,7 @@ class Request(dict):
             # section 4.1.1 "OAuth Consumers MUST NOT include an
             # oauth_body_hash parameter on requests with form-encoded
             # request bodies."
-            self['oauth_body_hash'] = base64.b64encode(sha(self.body).digest())
+            self['oauth_body_hash'] = base64.b64encode(sha(self.body.encode('utf-8')).digest()).decode()
 
         if 'oauth_consumer_key' not in self:
             self['oauth_consumer_key'] = consumer.key
@@ -606,7 +607,7 @@ class Request(dict):
     @staticmethod
     def _split_url_string(param_str):
         """Turn URL string into parameters."""
-        parameters = parse_qs(param_str.encode('utf-8'), keep_blank_values=True)
+        parameters = parse_qs(param_str, keep_blank_values=True)
         for k, v in parameters.items():
             parameters[k] = urllib.parse.unquote(v[0])
         return parameters
@@ -837,10 +838,10 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
         """Builds the base signature string."""
         key, raw = self.signing_base(request, consumer, token)
 
-        hashed = hmac.new(key, raw, sha)
+        hashed = hmac.new(bytes(key, 'utf-8'), bytes(raw, 'utf-8'), sha)
 
         # Calculate the digest base 64.
-        return binascii.b2a_base64(hashed.digest())[:-1]
+        return binascii.b2a_base64(hashed.digest()).decode()[:-1]
 
 
 class SignatureMethod_PLAINTEXT(SignatureMethod):

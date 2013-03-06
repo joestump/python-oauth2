@@ -1,6 +1,6 @@
 PYTHON      = $(shell test -x bin/python && echo bin/python || \
                       echo `which python`)
-PYVERS      = $(shell $(PYTHON) -c 'import sys; print "%s.%s" % sys.version_info[0:2]')
+PYVERS      = $(shell $(PYTHON) -c 'import sys; print("%s.%s" % sys.version_info[0:2])')
 VIRTUALENV  = $(shell /bin/echo -n `which virtualenv || \
                                     which virtualenv-$(PYVERS) || \
                                     which virtualenv$(PYVERS)`)
@@ -11,7 +11,7 @@ COVERAGE    = $(shell test -x bin/coverage && echo bin/coverage || echo true)
 SETUP       = $(PYTHON) ./setup.py
 EZ_INSTALL  = $(SETUP) easy_install -f "$(DEPS)"
 PYLINT      = bin/pylint
-PLATFORM    = $(shell $(PYTHON) -c "from pkg_resources import get_build_platform; print get_build_platform()")
+PLATFORM    = $(shell $(PYTHON) -c "from pkg_resources import get_build_platform; print(get_build_platform())")
 OS         := $(shell uname)
 EGG        := $(shell $(SETUP) --fullname)-py$(PYVERS).egg
 SDIST      := $(shell $(SETUP) --fullname).tar.gs

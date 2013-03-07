@@ -1,3 +1,9 @@
+# Python 3 fork
+
+Python 3 porting is slightly non-trivial since string and unicode handling changed quite a bit between Python 2 and 3. In my eyes at least, some of the old tests about non-utf8 encoded strings don't make any sense any more. Consequently, I removed/worked around a few of them.
+
+Do _not_ use this in any production environment.
+
 # Overview
 
 This code was originally forked from [Leah Culver and Andy Smith's oauth.py code](http://github.com/leah/python-oauth/). Some of the tests come from a [fork by Vic Fryzel](http://github.com/shellsage/python-oauth), while a revamped Request class and more tests were merged in from [Mark Paschal's fork](http://github.com/markpasc/python-oauth). A number of notable differences exist between this code and its forefathers:

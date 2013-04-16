@@ -1193,6 +1193,12 @@ class TestClient(unittest.TestCase):
         except ValueError:
             pass
 
+        # httplib2 options
+        client = oauth.Client(consumer, None, cache='.cache', timeout=3,
+            disable_ssl_certificate_validation=True)
+        self.assertNotEquals(client.cache, None)
+        self.assertEquals(client.timeout, 3)
+
     def test_access_token_get(self):
         """Test getting an access token via GET."""
         client = oauth.Client(self.consumer, None)

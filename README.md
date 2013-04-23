@@ -77,9 +77,9 @@ can be easily translated to a web application.
     consumer_key = 'my_key_from_twitter'
     consumer_secret = 'my_secret_from_twitter'
     
-    request_token_url = 'http://twitter.com/oauth/request_token'
-    access_token_url = 'http://twitter.com/oauth/access_token'
-    authorize_url = 'http://twitter.com/oauth/authorize'
+    request_token_url = 'http://api.twitter.com/oauth/request_token'
+    access_token_url = 'http://api.twitter.com/oauth/access_token'
+    authorize_url = 'http://api.twitter.com/oauth/authorize'
     
     consumer = oauth.Consumer(consumer_key, consumer_secret)
     client = oauth.Client(consumer)
@@ -192,6 +192,7 @@ and code here might need to be updated if you are using Python 2.6+.
     # Python
     import oauth2 as oauth
     import cgi
+    from urllib import urlencode
 
     # Django
     from django.shortcuts import render_to_response
@@ -209,15 +210,15 @@ and code here might need to be updated if you are using Python 2.6+.
     consumer = oauth.Consumer(settings.TWITTER_TOKEN, settings.TWITTER_SECRET)
     client = oauth.Client(consumer)
 
-    request_token_url = 'http://twitter.com/oauth/request_token'
-    access_token_url = 'http://twitter.com/oauth/access_token'
+    request_token_url = 'http://api.twitter.com/oauth/request_token'
+    access_token_url = 'http://api.twitter.com/oauth/access_token'
 
     # This is the slightly different URL used to authenticate/authorize.
-    authenticate_url = 'http://twitter.com/oauth/authenticate'
+    authenticate_url = 'http://api.twitter.com/oauth/authenticate'
 
     def twitter_login(request):
         # Step 1. Get a request token from Twitter.
-        resp, content = client.request(request_token_url, "GET")
+        resp, content = client.request(request_token_url, "POST", body=urlencode({'oauth_callback':"/"})
         if resp['status'] != '200':
             raise Exception("Invalid response from Twitter.")
 

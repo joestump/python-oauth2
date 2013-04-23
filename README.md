@@ -88,7 +88,7 @@ can be easily translated to a web application.
     # having the user authorize an access token and to sign the request to obtain 
     # said access token.
     
-    resp, content = client.request(request_token_url, "GET")
+    resp, content = client.request(request_token_url, "POST", body="oauth_callback=oob")
     if resp['status'] != '200':
         raise Exception("Invalid response %s." % resp['status'])
     
@@ -218,7 +218,7 @@ and code here might need to be updated if you are using Python 2.6+.
 
     def twitter_login(request):
         # Step 1. Get a request token from Twitter.
-        resp, content = client.request(request_token_url, "POST", body=urlencode({'oauth_callback':"/"})
+        resp, content = client.request(request_token_url, "POST", body="oauth_callback=http://<base-URL>login/authenticated/")
         if resp['status'] != '200':
             raise Exception("Invalid response from Twitter.")
 
@@ -243,10 +243,14 @@ and code here might need to be updated if you are using Python 2.6+.
         # Step 1. Use the request token in the session to build a new client.
         token = oauth.Token(request.session['request_token']['oauth_token'],
             request.session['request_token']['oauth_token_secret'])
+    
+        if 'oauth_verifier' in request.GET:
+            token.set_verifier(request.GET['oauth_verifier'])
+        
         client = oauth.Client(consumer, token)
     
         # Step 2. Request the authorized access token from Twitter.
-        resp, content = client.request(access_token_url, "GET")
+        resp, content = client.request(access_token_url, "POST")
         if resp['status'] != '200':
             print content
             raise Exception("Invalid response from Twitter.")
@@ -272,10 +276,16 @@ and code here might need to be updated if you are using Python 2.6+.
             # These two things will likely never be used. Alternatively, you 
             # can prompt them for their email here. Either way, the password 
             # should never be used.
-            user = User.objects.create_user(access_token['screen_name'],
-                '%s@twitter.com' % access_token['screen_name'],
-                access_token['oauth_token_secret'])
-    
+            
+        
+            user = User.objects.create_user(username=access_token['screen_name'],
+                email='%s@twitter.com' % access_token['screen_name'],
+                password=access_token['oauth_token_secret'])
+            # Need to reset password because set_password saves the password as a hash
+            # whereas the constructor above saves plaintext
+            user.set_password(access_token['oauth_token_secret'])
+            user.save()
+            
             # Save our permanent token and secret for later.
             profile = Profile()
             profile.user = user

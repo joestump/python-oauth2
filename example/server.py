@@ -186,7 +186,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 def main():
     try:
         server = HTTPServer(('', 8080), RequestHandler)
-        print 'Test server running...'
+        print('Test server running...')
         server.serve_forever()
     except KeyboardInterrupt:
         server.socket.close()

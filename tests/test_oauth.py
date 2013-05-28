@@ -257,6 +257,7 @@ class ReallyEqualMixin:
 
 class TestFuncs(unittest.TestCase):
     def test_to_unicode(self):
+        self.failUnlessRaises(TypeError, oauth.to_unicode, 0)
         self.failUnlessRaises(TypeError, oauth.to_unicode, '\xae')
         self.failUnlessRaises(TypeError, oauth.to_unicode_optional_iterator, '\xae')
         self.failUnlessRaises(TypeError, oauth.to_unicode_optional_iterator, ['\xae'])
@@ -264,30 +265,78 @@ class TestFuncs(unittest.TestCase):
         self.failUnlessEqual(oauth.to_unicode(':-)'), u':-)')
         self.failUnlessEqual(oauth.to_unicode(u'\u00ae'), u'\u00ae')
         self.failUnlessEqual(oauth.to_unicode('\xc2\xae'), u'\u00ae')
-        self.failUnlessEqual(oauth.to_unicode_optional_iterator([':-)']), [u':-)'])
-        self.failUnlessEqual(oauth.to_unicode_optional_iterator([u'\u00ae']), [u'\u00ae'])
+
+    def test_to_utf8(self):
+        self.failUnlessRaises(TypeError, oauth.to_utf8, 0)
+        self.failUnlessRaises(TypeError, oauth.to_utf8, '\x81')
+        self.failUnlessEqual(oauth.to_utf8(':-)'), ':-)')
+        self.failUnlessEqual(oauth.to_utf8(u'\u00ae'),
+                             u'\u00ae'.encode('utf8'))
+
+    def test_to_unicode_if_string(self):
+        self.failUnless(oauth.to_unicode_if_string(self) is self)
+        self.failUnlessEqual(oauth.to_unicode_if_string(':-)'), u':-)')
+
+    def test_to_utf8_if_string(self):
+        self.failUnless(oauth.to_utf8_if_string(self) is self)
+        self.failUnlessEqual(oauth.to_utf8_if_string(u':-)'), u':-)')
+        self.failUnlessEqual(oauth.to_utf8_if_string(u'\u00ae'),
+                             u'\u00ae'.encode('utf8'))
+
+    def test_to_unicode_optional_iterator(self):
+        self.failUnlessEqual(oauth.to_unicode_optional_iterator(':-)'),
+                             u':-)')
+        self.failUnlessEqual(oauth.to_unicode_optional_iterator(u'\u00ae'),
+                             u'\u00ae')
+        self.failUnlessEqual(oauth.to_unicode_optional_iterator([':-)']),
+                             [u':-)'])
+        self.failUnlessEqual(oauth.to_unicode_optional_iterator([u'\u00ae']),
+                             [u'\u00ae'])
+        self.failUnlessEqual(oauth.to_unicode_optional_iterator((u'\u00ae',)),
+                             [u'\u00ae'])
+        self.failUnless(oauth.to_unicode_optional_iterator(self) is self)
+
+    def test_to_utf8_optional_iterator(self):
+        self.failUnlessEqual(oauth.to_utf8_optional_iterator(':-)'),
+                             ':-)')
+        self.failUnlessEqual(oauth.to_utf8_optional_iterator(u'\u00ae'),
+                             u'\u00ae'.encode('utf8'))
+        self.failUnlessEqual(oauth.to_utf8_optional_iterator([':-)']),
+                             [u':-)'])
+        self.failUnlessEqual(oauth.to_utf8_optional_iterator([u'\u00ae']),
+                             [u'\u00ae'.encode('utf8')])
+        self.failUnlessEqual(oauth.to_utf8_optional_iterator((u'\u00ae',)),
+                             [u'\u00ae'.encode('utf8')])
+        self.failUnless(oauth.to_utf8_optional_iterator(self) is self)
 
 class TestRequest(unittest.TestCase, ReallyEqualMixin):
+    def test__init__(self):
+        method = "GET"
+        req = oauth.Request(method)
+        self.assertFalse('url' in req.__dict__)
+        self.assertFalse('normalized_url' in req.__dict__)
+        self.assertRaises(AttributeError, getattr, req, 'url')
+        self.assertRaises(AttributeError, getattr, req, 'normalized_url')
+
     def test_setter(self):
         url = "http://example.com"
         method = "GET"
-        req = oauth.Request(method)
-        self.assertTrue(not hasattr(req, 'url') or req.url is None)
-        self.assertTrue(not hasattr(req, 'normalized_url') or req.normalized_url is None)
+        req = oauth.Request(method, url)
+        self.assertEqual(req.url, url)
+        self.assertEqual(req.normalized_url, url)
+        req.url = url + '/?foo=bar'
+        self.assertEqual(req.url, url + '/?foo=bar')
+        self.assertEqual(req.normalized_url, url + '/')
+        req.url = None
+        self.assertEqual(req.url, None)
+        self.assertEqual(req.normalized_url, None)
 
     def test_deleter(self):
         url = "http://example.com"
         method = "GET"
         req = oauth.Request(method, url)
-
-        try:
-            del req.url
-            url = req.url
-            self.fail("AttributeError should have been raised on empty url.")
-        except AttributeError:
-            pass
-        except Exception, e:
-            self.fail(str(e))
+        del req.url
+        self.assertRaises(AttributeError, getattr, req, 'url')
 
     def test_url(self):
         url1 = "http://example.com:80/foo.php"
@@ -994,6 +1043,32 @@ class TestServer(unittest.TestCase):
         self.assertEquals(parameters['bar'], 'blerg')
         self.assertEquals(parameters['foo'], 59)
         self.assertEquals(parameters['multi'], ['FOO','BAR'])
+
+    def test_verify_request_missing_signature(self):
+        from oauth2 import MissingSignature
+        server = oauth.Server()
+        server.add_signature_method(oauth.SignatureMethod_PLAINTEXT())
+        del self.request['oauth_signature_method']
+        del self.request['oauth_signature']
+
+        self.assertRaises(MissingSignature,
+               server.verify_request, self.request, self.consumer, self.token)
+
+    def test_verify_request_invalid_signature(self):
+        server = oauth.Server()
+        server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
+        self.request['oauth_signature'] = 'BOGUS'
+
+        self.assertRaises(oauth.Error,
+               server.verify_request, self.request, self.consumer, self.token)
+
+    def test_verify_request_invalid_timestamp(self):
+        server = oauth.Server()
+        server.add_signature_method(oauth.SignatureMethod_HMAC_SHA1())
+        self.request['oauth_timestamp'] -= 86400
+
+        self.assertRaises(oauth.Error,
+               server.verify_request, self.request, self.consumer, self.token)
 
     def test_build_authenticate_header(self):
         server = oauth.Server()

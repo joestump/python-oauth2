@@ -33,15 +33,15 @@ import httplib2
 
 try:
     from urlparse import parse_qs
-    parse_qs # placate pyflakes
-except ImportError:
+except ImportError: #pragma NO COVER
     # fall back for Python 2.5
     from cgi import parse_qs
+else: #pragma NO COVER
+    parse_qs # placate pyflakes
 
 try:
-    from hashlib import sha1
-    sha = sha1
-except ImportError:
+    from hashlib import sha1 as sha
+except ImportError: #pragma NO COVER
     # hashlib was added in Python 2.5
     import sha
 
@@ -415,7 +415,7 @@ class Request(dict):
         base_url = urlparse.urlparse(self.url)
         try:
             query = base_url.query
-        except AttributeError:
+        except AttributeError: #pragma NO COVER
             # must be python <2.5
             query = base_url[4]
         query = parse_qs(query)
@@ -428,7 +428,7 @@ class Request(dict):
             path = base_url.path
             params = base_url.params
             fragment = base_url.fragment
-        except AttributeError:
+        except AttributeError: #pragma NO COVER
             # must be python <2.5
             scheme = base_url[0]
             netloc = base_url[1]
@@ -661,14 +661,8 @@ class Client(httplib2.Http):
 
         req.sign_request(self.method, self.consumer, self.token)
 
-        schema, rest = urllib.splittype(uri)
-        if rest.startswith('//'):
-            hierpart = '//'
-        else:
-            hierpart = ''
-        host, rest = urllib.splithost(rest)
-
-        realm = schema + ':' + hierpart + host
+        scheme, netloc, path, params, query, fragment = urlparse.urlparse(uri)
+        realm = urlparse.urlunparse((scheme, netloc, '', None, None, None))
 
         if is_form_encoded:
             body = req.to_postdata()
@@ -731,31 +725,24 @@ class Server(object):
 
     def _get_signature_method(self, request):
         """Figure out the signature with some defaults."""
-        try:
-            signature_method = request.get_parameter('oauth_signature_method')
-        except:
+        signature_method = request.get('oauth_signature_method')
+        if signature_method is None:
             signature_method = SIGNATURE_METHOD
 
         try:
             # Get the signature method object.
-            signature_method = self.signature_methods[signature_method]
-        except:
+            return self.signature_methods[signature_method]
+        except KeyError:
             signature_method_names = ', '.join(self.signature_methods.keys())
             raise Error('Signature method %s not supported try one of the following: %s' % (signature_method, signature_method_names))
-
-        return signature_method
-
-    def _get_verifier(self, request):
-        return request.get_parameter('oauth_verifier')
 
     def _check_signature(self, request, consumer, token):
         timestamp, nonce = request._get_timestamp_nonce()
         self._check_timestamp(timestamp)
         signature_method = self._get_signature_method(request)
 
-        try:
-            signature = request.get_parameter('oauth_signature')
-        except:
+        signature = request.get('oauth_signature')
+        if signature is None:
             raise MissingSignature('Missing oauth_signature.')
 
         # Validate the signature.
@@ -787,7 +774,7 @@ class SignatureMethod(object):
     provide a new way to sign requests.
     """
 
-    def signing_base(self, request, consumer, token):
+    def signing_base(self, request, consumer, token): #pragma NO COVER
         """Calculates the string that needs to be signed.
 
         This method returns a 2-tuple containing the starting key for the
@@ -797,7 +784,7 @@ class SignatureMethod(object):
         """
         raise NotImplementedError
 
-    def sign(self, request, consumer, token):
+    def sign(self, request, consumer, token): #pragma NO COVER
         """Returns the signature for the given request, based on the consumer
         and token also provided.
 

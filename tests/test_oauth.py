@@ -891,7 +891,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
             'oauth_consumer_key': con.key
         }
 
-        url = u"http://www.example.com/resource"
+        url = u'http://www.example.com/resource'
         req = oauth.Request(method="PUT", url=url, parameters=params,
                             body="Hello World!", is_form_encoded=False)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, None)

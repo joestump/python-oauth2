@@ -99,11 +99,17 @@ def to_unicode(s):
     message if s is not unicode, ascii, or utf-8. """
     if not isinstance(s, unicode):
         if not isinstance(s, str):
-            raise TypeError('You are required to pass either unicode or string here, not: %r (%s)' % (type(s), s))
+            raise TypeError('You are required to pass either unicode or '
+                            'string here, not: %r (%s)' % (type(s), s))
         try:
             s = s.decode('utf-8')
         except UnicodeDecodeError as le:
-            raise TypeError('You are required to pass either a unicode object or a utf-8 string here. You passed a Python string object which contained non-utf-8: %r. The UnicodeDecodeError that resulted from attempting to interpret it as utf-8 was: %s' % (s, le,))
+            raise TypeError('You are required to pass either a unicode '
+                            'object or a utf-8 string here. You passed a '
+                            'Python string object which contained non-utf-8: '
+                            '%r. The UnicodeDecodeError that resulted from '
+                            'attempting to interpret it as utf-8 was: %s'
+                                % (s, le,))
     return s
 
 def to_utf8(s):
@@ -357,7 +363,8 @@ class Request(dict):
     def url(self, value):
         self.__dict__['url'] = value
         if value is not None:
-            scheme, netloc, path, params, query, fragment = urlparse.urlparse(value)
+            scheme, netloc, path, params, query, fragment = urlparse.urlparse(
+                                                                value)
 
             # Exclude default port numbers.
             if scheme == 'http' and netloc[-3:] == ':80':
@@ -368,7 +375,8 @@ class Request(dict):
                 raise ValueError("Unsupported URL %s (%s)." % (value, scheme))
 
             # Normalized URL excludes params, query, and fragment.
-            self.normalized_url = urlparse.urlunparse((scheme, netloc, path, None, None, None))
+            self.normalized_url = urlparse.urlunparse(
+                                    (scheme, netloc, path, None, None, None))
         else:
             self.normalized_url = None
             self.__dict__['url'] = None
@@ -462,15 +470,19 @@ class Request(dict):
                     value = list(value)
                 except TypeError as e:
                     assert 'is not iterable' in str(e)
-                    items.append((to_utf8_if_string(key), to_utf8_if_string(value)))
+                    items.append(
+                        (to_utf8_if_string(key), to_utf8_if_string(value)))
                 else:
-                    items.extend((to_utf8_if_string(key), to_utf8_if_string(item)) for item in value)
+                    items.extend(
+                        (to_utf8_if_string(key), to_utf8_if_string(item))
+                            for item in value)
 
         # Include any query string parameters from the provided URL
         query = urlparse.urlparse(self.url)[4]
 
         url_items = self._split_url_string(query).items()
-        url_items = [(to_utf8(k), to_utf8(v)) for k, v in url_items if k != 'oauth_signature' ]
+        url_items = [(to_utf8(k), to_utf8(v))
+                        for k, v in url_items if k != 'oauth_signature' ]
         items.extend(url_items)
 
         items.sort()
@@ -486,7 +498,8 @@ class Request(dict):
 
         if not self.is_form_encoded:
             # according to
-            # http://oauth.googlecode.com/svn/spec/ext/body_hash/1.0/oauth-bodyhash.html
+            # http://oauth.googlecode.com/svn/spec/ext/body_hash/1.0/
+            #           oauth-bodyhash.html
             # section 4.1.1 "OAuth Consumers MUST NOT include an
             # oauth_body_hash parameter on requests with form-encoded
             # request bodies."
@@ -606,7 +619,8 @@ class Request(dict):
     @staticmethod
     def _split_url_string(param_str):
         """Turn URL string into parameters."""
-        parameters = parse_qs(param_str.encode('utf-8'), keep_blank_values=True)
+        parameters = parse_qs(param_str.encode('utf-8'),
+                              keep_blank_values=True)
         for k, v in parameters.iteritems():
             parameters[k] = urllib.unquote(v[0])
         return parameters
@@ -628,7 +642,8 @@ class Client(httplib2.Http):
         self.token = token
         self.method = SignatureMethod_HMAC_SHA1()
 
-        httplib2.Http.__init__(self, cache=cache, timeout=timeout, proxy_info=proxy_info)
+        httplib2.Http.__init__(self, cache=cache, timeout=timeout,
+                               proxy_info=proxy_info)
 
     def set_signature_method(self, method):
         if not isinstance(method, SignatureMethod):
@@ -734,7 +749,9 @@ class Server(object):
             return self.signature_methods[signature_method]
         except KeyError:
             signature_method_names = ', '.join(self.signature_methods.keys())
-            raise Error('Signature method %s not supported try one of the following: %s' % (signature_method, signature_method_names))
+            raise Error('Signature method %s not supported try one of the '
+                        'following: %s'
+                            % (signature_method, signature_method_names))
 
     def _check_signature(self, request, consumer, token):
         timestamp, nonce = request._get_timestamp_nonce()
@@ -805,7 +822,8 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
     name = 'HMAC-SHA1'
 
     def signing_base(self, request, consumer, token):
-        if not hasattr(request, 'normalized_url') or request.normalized_url is None:
+        if (not hasattr(request, 'normalized_url') or
+            request.normalized_url is None):
             raise ValueError("Base URL for request is not set.")
 
         sig = (

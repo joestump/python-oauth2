@@ -434,7 +434,8 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
             u('multi'): [u('FOO'), u('BAR')],
             u('uni_utf8'): u(b'\xae', 'latin1'),
             u('uni_unicode'): _UGLYPH,
-            u('uni_unicode_2'): u(b'åÅøØ', 'latin1'),
+            u('uni_unicode_2'):
+                u(b'\xc3\xa5\xc3\x85\xc3\xb8\xc3\x98', 'latin1'), # 'åÅøØ'
         }
 
         params = oauth_params

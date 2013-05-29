@@ -34,6 +34,35 @@ import mock
 
 import oauth2 as oauth
 
+try:
+    unicode
+except NameError: #pragma NO COVER Py3k
+    def u(x, encoding='ascii'):
+        if isinstance(x, str):
+            return x
+        try:
+            return x.decode(encoding)
+        except AttributeError:
+            return x
+        raise ValueError('WTF: %s' % x)
+else:
+    def u(x, encoding='ascii'):
+        if isinstance(x, unicode):
+            return x
+        try:
+            return x.decode(encoding)
+        except AttributeError:
+            return x
+        raise ValueError('WTF: %s' % x)
+
+_UEMPTY = u('')
+_UBLANK = u(' ')
+_BSMILEY = b':-)'
+_USMILEY = u(_BSMILEY)
+_GLYPH = b'\xae'
+_UGLYPH = u(_GLYPH, 'latin1')
+_U2019 = u(b'\xe2\x80\x99', 'utf8') # u'\u2019'
+_U2766 = u(b'\xe2\x9d\xa6', 'utf8') # u'\u2766'
 
 class TestError(unittest.TestCase):
     def test_message(self):
@@ -80,7 +109,7 @@ class TestGenerateFunctions(unittest.TestCase):
         parts = oauth_string.split(',')
         for part in parts:
             var, val = part.split('=')
-            returned[var] = val.strip('"') 
+            returned[var] = val.strip('"')
 
         self.assertEquals('HMAC-SHA1', returned['oauth_signature_method'])
         self.assertEquals('user_token', returned['oauth_token'])
@@ -271,51 +300,51 @@ class TestFuncs(unittest.TestCase):
         self.failUnlessRaises(TypeError,
                               oauth.to_unicode_optional_iterator, ['\xae'])
 
-        self.failUnlessEqual(oauth.to_unicode(':-)'), u':-)')
-        self.failUnlessEqual(oauth.to_unicode(u'\u00ae'), u'\u00ae')
-        self.failUnlessEqual(oauth.to_unicode('\xc2\xae'), u'\u00ae')
+        self.failUnlessEqual(oauth.to_unicode(_BSMILEY), _USMILEY)
+        self.failUnlessEqual(oauth.to_unicode(_UGLYPH), _UGLYPH)
+        self.failUnlessEqual(oauth.to_unicode('\xc2\xae'), _UGLYPH)
 
     def test_to_utf8(self):
         self.failUnlessRaises(TypeError, oauth.to_utf8, 0)
         self.failUnlessRaises(TypeError, oauth.to_utf8, '\x81')
-        self.failUnlessEqual(oauth.to_utf8(':-)'), ':-)')
-        self.failUnlessEqual(oauth.to_utf8(u'\u00ae'),
-                             u'\u00ae'.encode('utf8'))
+        self.failUnlessEqual(oauth.to_utf8(_BSMILEY), _BSMILEY)
+        self.failUnlessEqual(oauth.to_utf8(_UGLYPH),
+                             _UGLYPH.encode('utf8'))
 
     def test_to_unicode_if_string(self):
         self.failUnless(oauth.to_unicode_if_string(self) is self)
-        self.failUnlessEqual(oauth.to_unicode_if_string(':-)'), u':-)')
+        self.failUnlessEqual(oauth.to_unicode_if_string(_BSMILEY), _USMILEY)
 
     def test_to_utf8_if_string(self):
         self.failUnless(oauth.to_utf8_if_string(self) is self)
-        self.failUnlessEqual(oauth.to_utf8_if_string(u':-)'), u':-)')
-        self.failUnlessEqual(oauth.to_utf8_if_string(u'\u00ae'),
-                             u'\u00ae'.encode('utf8'))
+        self.failUnlessEqual(oauth.to_utf8_if_string(_USMILEY), _USMILEY)
+        self.failUnlessEqual(oauth.to_utf8_if_string(_UGLYPH),
+                             _UGLYPH.encode('utf8'))
 
     def test_to_unicode_optional_iterator(self):
-        self.failUnlessEqual(oauth.to_unicode_optional_iterator(':-)'),
-                             u':-)')
-        self.failUnlessEqual(oauth.to_unicode_optional_iterator(u'\u00ae'),
-                             u'\u00ae')
-        self.failUnlessEqual(oauth.to_unicode_optional_iterator([':-)']),
-                             [u':-)'])
-        self.failUnlessEqual(oauth.to_unicode_optional_iterator([u'\u00ae']),
-                             [u'\u00ae'])
-        self.failUnlessEqual(oauth.to_unicode_optional_iterator((u'\u00ae',)),
-                             [u'\u00ae'])
+        self.failUnlessEqual(oauth.to_unicode_optional_iterator(_BSMILEY),
+                             _USMILEY)
+        self.failUnlessEqual(oauth.to_unicode_optional_iterator(_UGLYPH),
+                             _UGLYPH)
+        self.failUnlessEqual(oauth.to_unicode_optional_iterator([_BSMILEY]),
+                             [_USMILEY])
+        self.failUnlessEqual(oauth.to_unicode_optional_iterator([_UGLYPH]),
+                             [_UGLYPH])
+        self.failUnlessEqual(oauth.to_unicode_optional_iterator((_UGLYPH,)),
+                             [_UGLYPH])
         self.failUnless(oauth.to_unicode_optional_iterator(self) is self)
 
     def test_to_utf8_optional_iterator(self):
-        self.failUnlessEqual(oauth.to_utf8_optional_iterator(':-)'),
-                             ':-)')
-        self.failUnlessEqual(oauth.to_utf8_optional_iterator(u'\u00ae'),
-                             u'\u00ae'.encode('utf8'))
-        self.failUnlessEqual(oauth.to_utf8_optional_iterator([':-)']),
-                             [u':-)'])
-        self.failUnlessEqual(oauth.to_utf8_optional_iterator([u'\u00ae']),
-                             [u'\u00ae'.encode('utf8')])
-        self.failUnlessEqual(oauth.to_utf8_optional_iterator((u'\u00ae',)),
-                             [u'\u00ae'.encode('utf8')])
+        self.failUnlessEqual(oauth.to_utf8_optional_iterator(_BSMILEY),
+                             _BSMILEY)
+        self.failUnlessEqual(oauth.to_utf8_optional_iterator(_UGLYPH),
+                             _UGLYPH.encode('utf8'))
+        self.failUnlessEqual(oauth.to_utf8_optional_iterator([_BSMILEY]),
+                             [_USMILEY])
+        self.failUnlessEqual(oauth.to_utf8_optional_iterator([_UGLYPH]),
+                             [_UGLYPH.encode('utf8')])
+        self.failUnlessEqual(oauth.to_utf8_optional_iterator((_UGLYPH,)),
+                             [_UGLYPH.encode('utf8')])
         self.failUnless(oauth.to_utf8_optional_iterator(self) is self)
 
 class TestRequest(unittest.TestCase, ReallyEqualMixin):
@@ -414,12 +443,12 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         }
 
         other_params = {
-            u'foo': u'baz',
-            u'bar': u'foo',
-            u'multi': [u'FOO',u'BAR'],
-            u'uni_utf8': u'\xae',
-            u'uni_unicode': u'\u00ae',
-            u'uni_unicode_2': u'åÅøØ',
+            u('foo'): u('baz'),
+            u('bar'): u('foo'),
+            u('multi'): [u('FOO'), u('BAR')],
+            u('uni_utf8'): u(b'\xae', 'latin1'),
+            u('uni_unicode'): _UGLYPH,
+            u('uni_unicode_2'): u(b'åÅøØ', 'latin1'),
         }
 
         params = oauth_params
@@ -465,7 +494,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         realm = "http://sp.example.com/"
 
         params = {
-            'nonasciithing': u'q\xbfu\xe9 ,aasp u?..a.s',
+            'nonasciithing': u('q\xbfu\xe9 ,aasp u?..a.s', 'latin1'),
             'oauth_version': "1.0",
             'oauth_nonce': "4572616e48616d6d65724c61686176",
             'oauth_timestamp': "137131200",
@@ -535,7 +564,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         a = urlparse.parse_qs(exp.query)
         b = urlparse.parse_qs(res.query)
         self.assertEquals(a, b)
-    
+
     def test_to_url_with_query(self):
         url = ("https://www.google.com/m8/feeds/contacts/default/full/"
                "?alt=json&max-contacts=10")
@@ -570,13 +599,13 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
     def test_signature_base_string_nonascii_nonutf8(self):
         consumer = oauth.Consumer('consumer_token', 'consumer_secret')
 
-        url = (u'http://api.simplegeo.com:80/1.0/places/address.json'
-               u'?q=monkeys&category=animal'
-               u'&address=41+Decatur+St,+San+Francisc\u2766,+CA')
+        url = u('http://api.simplegeo.com:80/1.0/places/address.json'
+                '?q=monkeys&category=animal'
+                '&address=41+Decatur+St,+San+Francisc') + _U2766 + u(',+CA')
         req = oauth.Request("GET", url)
         self.failUnlessReallyEqual(
             req.normalized_url,
-            u'http://api.simplegeo.com/1.0/places/address.json')
+            u('http://api.simplegeo.com/1.0/places/address.json'))
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), consumer, None)
         self.failUnlessReallyEqual(
             req['oauth_signature'], 'WhufgeZKyYpKsI70GZaiDaYwl6g=')
@@ -587,7 +616,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         req = oauth.Request("GET", url)
         self.failUnlessReallyEqual(
             req.normalized_url,
-            u'http://api.simplegeo.com/1.0/places/address.json')
+            u('http://api.simplegeo.com/1.0/places/address.json'))
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), consumer, None)
         self.failUnlessReallyEqual(
             req['oauth_signature'], 'WhufgeZKyYpKsI70GZaiDaYwl6g=')
@@ -598,18 +627,18 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         req = oauth.Request("GET", url)
         self.failUnlessReallyEqual(
             req.normalized_url,
-            u'http://api.simplegeo.com/1.0/places/address.json')
+            u('http://api.simplegeo.com/1.0/places/address.json'))
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), consumer, None)
         self.failUnlessReallyEqual(
             req['oauth_signature'], 'WhufgeZKyYpKsI70GZaiDaYwl6g=')
 
-        url = (u'http://api.simplegeo.com:80/1.0/places/address.json'
-               u'?q=monkeys&category=animal'
-               u'&address=41+Decatur+St,+San+Francisc%E2%9D%A6,+CA')
+        url = u('http://api.simplegeo.com:80/1.0/places/address.json'
+                '?q=monkeys&category=animal'
+                '&address=41+Decatur+St,+San+Francisc%E2%9D%A6,+CA')
         req = oauth.Request("GET", url)
         self.failUnlessReallyEqual(
             req.normalized_url,
-            u'http://api.simplegeo.com/1.0/places/address.json')
+            u('http://api.simplegeo.com/1.0/places/address.json'))
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), consumer, None)
         self.failUnlessReallyEqual(
             req['oauth_signature'], 'WhufgeZKyYpKsI70GZaiDaYwl6g=')
@@ -731,10 +760,10 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
             'oauth_consumer_key': "0685bd9184jfhq22",
             'oauth_signature_method': "HMAC-SHA1",
             'oauth_token': "ad180jjd733klru7",
-            'multi': ['FOO','BAR', u'\u00ae', '\xc2\xae'],
+            'multi': ['FOO','BAR', _UGLYPH, b'\xc2\xae'],
             'multi_same': ['FOO','FOO'],
-            'uni_utf8_bytes': '\xc2\xae',
-            'uni_unicode_object': u'\u00ae'
+            'uni_utf8_bytes': b'\xc2\xae',
+            'uni_unicode_object': _UGLYPH
         }
 
         req = oauth.Request("GET", url, params)
@@ -830,7 +859,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
                 oauth.Request, method="GET", url=url, parameters=params)
 
         # And if they pass an unicode, then we'll use it.
-        url = u'http://sp.example.com/\u2019'
+        url = u('http://sp.example.com/') + _U2019
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, None)
         self.failUnlessReallyEqual(
@@ -854,7 +883,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
             oauth.Request, method="GET", url=url, parameters=params)
 
         # And if they pass a unicode, then we'll use it.
-        params['non_oauth_thing'] = u'\u2019'
+        params['non_oauth_thing'] = _U2019
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, None)
         self.failUnlessReallyEqual(
@@ -891,7 +920,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
             'oauth_consumer_key': con.key
         }
 
-        url = u'http://www.example.com/resource'
+        url = u('http://www.example.com/resource')
         req = oauth.Request(method="PUT", url=url, parameters=params,
                             body="Hello World!", is_form_encoded=False)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, None)
@@ -972,7 +1001,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         self.assertEquals(
             req['oauth_signature'], 'loFvp5xC7YbOgd9exIO6TxB7H4s=')
 
-        url = u'http://sp.example.com/\u2019' # Python unicode object
+        url = u('http://sp.example.com/') + _U2019 # Python unicode object
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, tok)
         self.assertEquals(
@@ -985,7 +1014,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         self.assertEquals(
             req['oauth_signature'], 'IBw5mfvoCsDjgpcsVKbyvsDqQaU=')
 
-        url = u'http://sp.example.com/?q=\u2019' # Python unicode object
+        url = u('http://sp.example.com/?q=') + _U2019 # Python unicode object
         req = oauth.Request(method="GET", url=url, parameters=params)
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, tok)
         self.assertEquals(
@@ -1173,7 +1202,7 @@ class TestServer(unittest.TestCase):
         server = oauth.Server()
         headers = server.build_authenticate_header('example.com')
         self.assertTrue('WWW-Authenticate' in headers)
-        self.assertEquals('OAuth realm="example.com"', 
+        self.assertEquals('OAuth realm="example.com"',
             headers['WWW-Authenticate'])
 
     def test_no_version(self):

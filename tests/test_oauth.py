@@ -23,26 +23,16 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
-import sys
-import os
-import unittest
-import oauth2 as oauth
 import random
 import time
+import unittest
 import urllib
 import urlparse
-from types import ListType
-import mock
+
 import httplib2
+import mock
 
-# Fix for python2.5 compatibility
-try:
-    from urlparse import parse_qs, parse_qsl
-except ImportError:
-    from cgi import parse_qs, parse_qsl
-
-
-sys.path[0:0] = [os.path.join(os.path.dirname(__file__), ".."),]
+import oauth2 as oauth
 
 
 class TestError(unittest.TestCase):
@@ -136,7 +126,7 @@ class TestConsumer(unittest.TestCase):
         self.assertRaises(ValueError, lambda: oauth.Consumer(None, 'dasf'))
 
     def test_str(self):
-        res = dict(parse_qsl(str(self.consumer)))
+        res = dict(urlparse.parse_qsl(str(self.consumer)))
         self.assertTrue('oauth_consumer_key' in res)
         self.assertTrue('oauth_consumer_secret' in res)
         self.assertEquals(res['oauth_consumer_key'], self.consumer.key)
@@ -495,7 +485,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         del params['multi']
         flat.extend(params.items())
         kf = lambda x: x[0]
-        self.assertEquals(sorted(flat, key=kf), sorted(parse_qsl(req.to_postdata()), key=kf))
+        self.assertEquals(sorted(flat, key=kf), sorted(urlparse.parse_qsl(req.to_postdata()), key=kf))
 
     def test_to_url(self):
         url = "http://sp.example.com/"
@@ -517,8 +507,8 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         self.assertEquals(exp.netloc, res.netloc)
         self.assertEquals(exp.path, res.path)
 
-        a = parse_qs(exp.query)
-        b = parse_qs(res.query)
+        a = urlparse.parse_qs(exp.query)
+        b = urlparse.parse_qs(res.query)
         self.assertEquals(a, b)
     
     def test_to_url_with_query(self):
@@ -542,8 +532,8 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         self.assertEquals(exp.netloc, res.netloc)
         self.assertEquals(exp.path, res.path)
 
-        a = parse_qs(exp.query)
-        b = parse_qs(res.query)
+        a = urlparse.parse_qs(exp.query)
+        b = urlparse.parse_qs(res.query)
         self.assertTrue('alt' in b)
         self.assertTrue('max-contacts' in b)
         self.assertEquals(b['alt'], ['json'])
@@ -591,7 +581,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         req = oauth.Request("GET", url, params)
         self.assertEquals(req.normalized_url, 'https://www.google.com/m8/feeds/contacts/default/full/')
         self.assertEquals(req.url, 'https://www.google.com/m8/feeds/contacts/default/full/?alt=json&max-contacts=10')
-        normalized_params = parse_qsl(req.get_normalized_parameters())
+        normalized_params = urlparse.parse_qsl(req.get_normalized_parameters())
         self.assertTrue(len(normalized_params), len(params) + 2)
         normalized_params = dict(normalized_params)
         for key, value in params.iteritems():
@@ -928,7 +918,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         qs = urllib.urlencode(params)
         req = oauth.Request.from_request("GET", url, query_string=qs)
 
-        exp = parse_qs(qs, keep_blank_values=False)
+        exp = urlparse.parse_qs(qs, keep_blank_values=False)
         for k, v in exp.iteritems():
             exp[k] = urllib.unquote(v[0])
 
@@ -1282,7 +1272,7 @@ class TestClient(unittest.TestCase):
 
         self.assertEquals(int(resp['status']), 200)
 
-        res = dict(parse_qsl(content))
+        res = dict(urlparse.parse_qsl(content))
         self.assertTrue('oauth_token' in res)
         self.assertTrue('oauth_token_secret' in res)
 
@@ -1350,8 +1340,8 @@ class TestClient(unittest.TestCase):
             req = oauth.Request.from_consumer_and_token(self.consumer, None,
                     http_method='GET', http_url=uri, parameters={})
             req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), self.consumer, None)
-            expected = parse_qsl(urlparse.urlparse(req.to_url()).query)
-            actual = parse_qsl(urlparse.urlparse(ur).query)
+            expected = urlparse.parse_qsl(urlparse.urlparse(req.to_url()).query)
+            actual = urlparse.parse_qsl(urlparse.urlparse(ur).query)
             self.failUnlessEqual(len(expected), len(actual))
             actual = dict(actual)
             for key, value in expected:
@@ -1381,4 +1371,7 @@ class TestClient(unittest.TestCase):
         self.failUnless('multi=2' in mockHttpRequest.call_args[1]['body'])
 
 if __name__ == "__main__":
+    import os
+    import sys
+    sys.path[0:0] = [os.path.join(os.path.dirname(__file__), ".."),]
     unittest.main()

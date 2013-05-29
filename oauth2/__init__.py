@@ -102,7 +102,7 @@ def to_unicode(s):
             raise TypeError('You are required to pass either unicode or string here, not: %r (%s)' % (type(s), s))
         try:
             s = s.decode('utf-8')
-        except UnicodeDecodeError, le:
+        except UnicodeDecodeError as le:
             raise TypeError('You are required to pass either a unicode object or a utf-8 string here. You passed a Python string object which contained non-utf-8: %r. The UnicodeDecodeError that resulted from attempting to interpret it as utf-8 was: %s' % (s, le,))
     return s
 
@@ -131,7 +131,7 @@ def to_unicode_optional_iterator(x):
 
     try:
         l = list(x)
-    except TypeError, e:
+    except TypeError as e:
         assert 'is not iterable' in str(e)
         return x
     else:
@@ -147,7 +147,7 @@ def to_utf8_optional_iterator(x):
 
     try:
         l = list(x)
-    except TypeError, e:
+    except TypeError as e:
         assert 'is not iterable' in str(e)
         return x
     else:
@@ -460,7 +460,7 @@ class Request(dict):
             else:
                 try:
                     value = list(value)
-                except TypeError, e:
+                except TypeError as e:
                     assert 'is not iterable' in str(e)
                     items.append((to_utf8_if_string(key), to_utf8_if_string(value)))
                 else:

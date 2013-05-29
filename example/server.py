@@ -131,7 +131,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 # return the token
                 self.wfile.write(token.to_string())
-            except oauth.OAuthError, err:
+            except oauth.OAuthError as err:
                 self.send_oauth_error(err)
             return
 
@@ -148,7 +148,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 # return the callback url (to show server has it)
                 self.wfile.write(token.get_callback_url())
-            except oauth.OAuthError, err:
+            except oauth.OAuthError as err:
                 self.send_oauth_error(err)
             return
 
@@ -162,7 +162,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 # return the token
                 self.wfile.write(token.to_string())
-            except oauth.OAuthError, err:
+            except oauth.OAuthError as err:
                 self.send_oauth_error(err)
             return
 
@@ -176,7 +176,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 # return the extra parameters - just for something to return
                 self.wfile.write(str(params))
-            except oauth.OAuthError, err:
+            except oauth.OAuthError as err:
                 self.send_oauth_error(err)
             return
 

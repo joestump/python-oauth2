@@ -216,7 +216,7 @@ class TestToken(unittest.TestCase):
         # TODO: What about copying the verifier to the new token?
         # self.assertEqual(self.token.verifier, new.verifier)
 
-    def test_to_string(self):
+    def test___str__(self):
         tok = oauth.Token('tooken', 'seecret')
         self.assertEqual(str(tok),
                          'oauth_token_secret=seecret&oauth_token=tooken')

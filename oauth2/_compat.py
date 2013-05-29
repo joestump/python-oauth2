@@ -7,11 +7,11 @@ else: #pragma NO COVER Python2
     STRING_TYPES = (unicode, bytes)
 
 def u(x, encoding='ascii'):
-    if isinstance(x, TEXT):
+    if isinstance(x, TEXT): #pragma NO COVER
         return x
     try:
         return x.decode(encoding)
-    except AttributeError:
+    except AttributeError: #pragma NO COVER
         raise ValueError('WTF: %s' % x)
 
 try:

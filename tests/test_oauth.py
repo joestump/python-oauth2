@@ -26,34 +26,19 @@ THE SOFTWARE.
 import random
 import time
 import unittest
-import urllib
-import urlparse
 
 import httplib2
 import mock
 
-import oauth2 as oauth
+from oauth2._compat import unquote
+from oauth2._compat import urlencode
+from oauth2._compat import urlparse
+from oauth2._compat import urlunparse
+from oauth2._compat import parse_qs
+from oauth2._compat import parse_qsl
+from oauth2._compat import u
 
-try:
-    unicode
-except NameError: #pragma NO COVER Py3k
-    def u(x, encoding='ascii'):
-        if isinstance(x, str):
-            return x
-        try:
-            return x.decode(encoding)
-        except AttributeError:
-            return x
-        raise ValueError('WTF: %s' % x)
-else:
-    def u(x, encoding='ascii'):
-        if isinstance(x, unicode):
-            return x
-        try:
-            return x.decode(encoding)
-        except AttributeError:
-            return x
-        raise ValueError('WTF: %s' % x)
+import oauth2 as oauth
 
 _UEMPTY = u('')
 _UBLANK = u(' ')
@@ -155,7 +140,7 @@ class TestConsumer(unittest.TestCase):
         self.assertRaises(ValueError, lambda: oauth.Consumer(None, 'dasf'))
 
     def test_str(self):
-        res = dict(urlparse.parse_qsl(str(self.consumer)))
+        res = dict(parse_qsl(str(self.consumer)))
         self.assertTrue('oauth_consumer_key' in res)
         self.assertTrue('oauth_consumer_secret' in res)
         self.assertEquals(res['oauth_consumer_key'], self.consumer.key)
@@ -294,19 +279,19 @@ class ReallyEqualMixin:
 class TestFuncs(unittest.TestCase):
     def test_to_unicode(self):
         self.failUnlessRaises(TypeError, oauth.to_unicode, 0)
-        self.failUnlessRaises(TypeError, oauth.to_unicode, '\xae')
+        self.failUnlessRaises(TypeError, oauth.to_unicode, b'\xae')
         self.failUnlessRaises(TypeError,
-                              oauth.to_unicode_optional_iterator, '\xae')
+                              oauth.to_unicode_optional_iterator, b'\xae')
         self.failUnlessRaises(TypeError,
-                              oauth.to_unicode_optional_iterator, ['\xae'])
+                              oauth.to_unicode_optional_iterator, [b'\xae'])
 
         self.failUnlessEqual(oauth.to_unicode(_BSMILEY), _USMILEY)
         self.failUnlessEqual(oauth.to_unicode(_UGLYPH), _UGLYPH)
-        self.failUnlessEqual(oauth.to_unicode('\xc2\xae'), _UGLYPH)
+        self.failUnlessEqual(oauth.to_unicode(b'\xc2\xae'), _UGLYPH)
 
     def test_to_utf8(self):
         self.failUnlessRaises(TypeError, oauth.to_utf8, 0)
-        self.failUnlessRaises(TypeError, oauth.to_utf8, '\x81')
+        self.failUnlessRaises(TypeError, oauth.to_utf8, b'\x81')
         self.failUnlessEqual(oauth.to_utf8(_BSMILEY), _BSMILEY)
         self.failUnlessEqual(oauth.to_utf8(_UGLYPH),
                              _UGLYPH.encode('utf8'))
@@ -317,7 +302,7 @@ class TestFuncs(unittest.TestCase):
 
     def test_to_utf8_if_string(self):
         self.failUnless(oauth.to_utf8_if_string(self) is self)
-        self.failUnlessEqual(oauth.to_utf8_if_string(_USMILEY), _USMILEY)
+        self.failUnlessEqual(oauth.to_utf8_if_string(_USMILEY), _BSMILEY)
         self.failUnlessEqual(oauth.to_utf8_if_string(_UGLYPH),
                              _UGLYPH.encode('utf8'))
 
@@ -340,7 +325,9 @@ class TestFuncs(unittest.TestCase):
         self.failUnlessEqual(oauth.to_utf8_optional_iterator(_UGLYPH),
                              _UGLYPH.encode('utf8'))
         self.failUnlessEqual(oauth.to_utf8_optional_iterator([_BSMILEY]),
-                             [_USMILEY])
+                             [_BSMILEY])
+        self.failUnlessEqual(oauth.to_utf8_optional_iterator([_USMILEY]),
+                             [_BSMILEY])
         self.failUnlessEqual(oauth.to_utf8_optional_iterator([_UGLYPH]),
                              [_UGLYPH.encode('utf8')])
         self.failUnlessEqual(oauth.to_utf8_optional_iterator((_UGLYPH,)),
@@ -420,8 +407,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
     def test_url_query(self):
         url = ("https://www.google.com/m8/feeds/contacts/default/full/"
                "?alt=json&max-contacts=10")
-        normalized_url = urlparse.urlunparse(
-                            urlparse.urlparse(url)[:3] + (None, None, None))
+        normalized_url = urlunparse(urlparse(url)[:3] + (None, None, None))
         method = "GET"
         req = oauth.Request(method, url)
         self.assertEquals(req.url, url)
@@ -480,7 +466,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         res = {}
         for v in vars:
             var, val = v.split('=')
-            res[var] = urllib.unquote(val.strip('"'))
+            res[var] = unquote(val.strip('"'))
 
         self.assertEquals(realm, res['realm'])
         del res['realm']
@@ -539,7 +525,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         kf = lambda x: x[0]
         self.assertEquals(
                 sorted(flat, key=kf),
-                sorted(urlparse.parse_qsl(req.to_postdata()), key=kf))
+                sorted(parse_qsl(req.to_postdata()), key=kf))
 
     def test_to_url(self):
         url = "http://sp.example.com/"
@@ -555,14 +541,14 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         }
 
         req = oauth.Request("GET", url, params)
-        exp = urlparse.urlparse("%s?%s" % (url, urllib.urlencode(params)))
-        res = urlparse.urlparse(req.to_url())
+        exp = urlparse("%s?%s" % (url, urlencode(params)))
+        res = urlparse(req.to_url())
         self.assertEquals(exp.scheme, res.scheme)
         self.assertEquals(exp.netloc, res.netloc)
         self.assertEquals(exp.path, res.path)
 
-        a = urlparse.parse_qs(exp.query)
-        b = urlparse.parse_qs(res.query)
+        a = parse_qs(exp.query)
+        b = parse_qs(res.query)
         self.assertEquals(a, b)
 
     def test_to_url_with_query(self):
@@ -582,14 +568,14 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         req = oauth.Request("GET", url, params)
         # Note: the url above already has query parameters, so append new
         # ones with &
-        exp = urlparse.urlparse("%s&%s" % (url, urllib.urlencode(params)))
-        res = urlparse.urlparse(req.to_url())
+        exp = urlparse("%s&%s" % (url, urlencode(params)))
+        res = urlparse(req.to_url())
         self.assertEquals(exp.scheme, res.scheme)
         self.assertEquals(exp.netloc, res.netloc)
         self.assertEquals(exp.path, res.path)
 
-        a = urlparse.parse_qs(exp.query)
-        b = urlparse.parse_qs(res.query)
+        a = parse_qs(exp.query)
+        b = parse_qs(res.query)
         self.assertTrue('alt' in b)
         self.assertTrue('max-contacts' in b)
         self.assertEquals(b['alt'], ['json'])
@@ -660,10 +646,10 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
             req.normalized_url,
             'https://www.google.com/m8/feeds/contacts/default/full/')
         self.assertEquals(req.url, bytes(url))
-        normalized_params = urlparse.parse_qsl(req.get_normalized_parameters())
+        normalized_params = parse_qsl(req.get_normalized_parameters())
         self.assertTrue(len(normalized_params), len(params) + 2)
         normalized_params = dict(normalized_params)
-        for key, value in params.iteritems():
+        for key, value in params.items():
             if key == 'oauth_signature':
                 continue
             self.assertEquals(value, normalized_params[key])
@@ -800,11 +786,11 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
         res = req.get_normalized_parameters()
 
-        self.assertNotEquals(urllib.urlencode(sorted(params.items())), res)
+        self.assertNotEquals(urlencode(sorted(params.items())), res)
 
         foo = params.copy()
         del foo["oauth_signature"]
-        self.assertEqual(urllib.urlencode(sorted(foo.items())), res)
+        self.assertEqual(urlencode(sorted(foo.items())), res)
 
     def test_set_signature_method(self):
         consumer = oauth.Consumer('key', 'secret')
@@ -833,7 +819,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
         req = oauth.Request("GET", url, params)
         res = req.get_normalized_parameters()
-        expected = urllib.urlencode(sorted(params.items())).replace('+', '%20')
+        expected = urlencode(sorted(params.items())).replace('+', '%20')
         self.assertEqual(expected, res)
 
     @mock.patch('oauth2.Request.make_timestamp')
@@ -1052,12 +1038,12 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
             url, bad_headers)
 
         # Test getting from query string
-        qs = urllib.urlencode(params)
+        qs = urlencode(params)
         req = oauth.Request.from_request("GET", url, query_string=qs)
 
-        exp = urlparse.parse_qs(qs, keep_blank_values=False)
-        for k, v in exp.iteritems():
-            exp[k] = urllib.unquote(v[0])
+        exp = parse_qs(qs, keep_blank_values=False)
+        for k, v in exp.items():
+            exp[k] = unquote(v[0])
 
         self.assertEquals(exp, req.copy())
 
@@ -1369,7 +1355,7 @@ class TestClient(unittest.TestCase):
         boundary = '---Boundary-%d' % random.randint(1,1000)
         crlf = '\r\n'
         items = []
-        for key, value in data.iteritems():
+        for key, value in data.items():
             items += [
                 '--'+boundary,
                 'Content-Disposition: form-data; name="%s"'%str(key),
@@ -1411,7 +1397,7 @@ class TestClient(unittest.TestCase):
 
         self.assertEquals(int(resp['status']), 200)
 
-        res = dict(urlparse.parse_qsl(content))
+        res = dict(parse_qsl(content))
         self.assertTrue('oauth_token' in res)
         self.assertTrue('oauth_token_secret' in res)
 
@@ -1419,7 +1405,7 @@ class TestClient(unittest.TestCase):
         client = oauth.Client(self.consumer, None)
 
         return client.request(self._uri('two_legged'), method,
-            body=urllib.urlencode(self.body))
+            body=urlencode(self.body))
 
     def test_two_legged_post(self):
         """A test of a two-legged OAuth POST request."""
@@ -1488,9 +1474,9 @@ class TestClient(unittest.TestCase):
                     http_method='GET', http_url=uri, parameters={})
             req.sign_request(oauth.SignatureMethod_HMAC_SHA1(),
                              self.consumer, None)
-            expected = urlparse.parse_qsl(
-                            urlparse.urlparse(req.to_url()).query)
-            actual = urlparse.parse_qsl(urlparse.urlparse(ur).query)
+            expected = parse_qsl(
+                            urlparse(req.to_url()).query)
+            actual = parse_qsl(urlparse(ur).query)
             self.failUnlessEqual(len(expected), len(actual))
             actual = dict(actual)
             for key, value in expected:

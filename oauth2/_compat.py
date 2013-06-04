@@ -3,8 +3,14 @@ try:
 except NameError: #pragma NO COVER Py3k
     TEXT = str
     STRING_TYPES = (str, bytes)
+    def b(x, encoding='ascii'):
+        return bytes(x, encoding)
 else: #pragma NO COVER Python2
     STRING_TYPES = (unicode, bytes)
+    def b(x, encoding='ascii'):
+        if isinstance(x, unicode):
+            x = x.encode(encoding)
+        return x
 
 def u(x, encoding='ascii'):
     if isinstance(x, TEXT): #pragma NO COVER

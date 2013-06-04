@@ -30,6 +30,8 @@ import hmac
 import binascii
 import httplib2
 
+from ._compat import PY3
+from ._compat import parse_qs
 from ._compat import quote
 from ._compat import STRING_TYPES
 from ._compat import TEXT
@@ -38,7 +40,6 @@ from ._compat import unquote_to_bytes
 from ._compat import urlencode
 from ._compat import urlparse
 from ._compat import urlunparse
-from ._compat import parse_qs
 from ._version import __version__
 
 OAUTH_VERSION = '1.0'  # Hi Blaine!
@@ -154,7 +155,9 @@ def to_utf8_optional_iterator(x):
 
 def escape(s):
     """Escape a URL including any /."""
-    return quote(s.encode('utf-8'), safe='~')
+    if not isinstance(s, bytes):
+        s = s.encode('utf-8')
+    return quote(s, safe='~')
 
 def generate_timestamp():
     """Get seconds since epoch (UTC)."""
@@ -339,7 +342,7 @@ class Request(dict):
     version = OAUTH_VERSION
 
     def __init__(self, method=HTTP_METHOD, url=None, parameters=None,
-                 body='', is_form_encoded=False):
+                 body=b'', is_form_encoded=False):
         if url is not None:
             self.url = to_unicode(url)
         self.method = method
@@ -555,7 +558,7 @@ class Request(dict):
     @classmethod
     def from_consumer_and_token(cls, consumer, token=None,
             http_method=HTTP_METHOD, http_url=None, parameters=None,
-            body='', is_form_encoded=False):
+            body=b'', is_form_encoded=False):
         if not parameters:
             parameters = {}
  
@@ -611,7 +614,9 @@ class Request(dict):
     @staticmethod
     def _split_url_string(param_str):
         """Turn URL string into parameters."""
-        parameters = parse_qs(param_str.encode('utf-8'),
+        #XXX parse_qs is leaving the encoded bytes after un-escaping
+        #parameters = parse_qs(param_str.encode('utf-8'),
+        parameters = parse_qs(param_str,
                               keep_blank_values=True)
         for k, v in parameters.items():
             parameters[k] = unquote_to_bytes(v[0])
@@ -643,7 +648,7 @@ class Client(httplib2.Http):
 
         self.method = method
 
-    def request(self, uri, method="GET", body='', headers=None, 
+    def request(self, uri, method="GET", body=b'', headers=None,
         redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
         DEFAULT_POST_CONTENT_TYPE = 'application/x-www-form-urlencoded'
 
@@ -828,7 +833,7 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
         if token:
             key += escape(token.secret)
         raw = '&'.join(sig)
-        return key, raw
+        return key.encode('ascii'), raw.encode('ascii')
 
     def sign(self, request, consumer, token):
         """Builds the base signature string."""
@@ -854,4 +859,4 @@ class SignatureMethod_PLAINTEXT(SignatureMethod):
 
     def sign(self, request, consumer, token):
         key, raw = self.signing_base(request, consumer, token)
-        return raw
+        return raw.encode('utf8')

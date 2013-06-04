@@ -1,11 +1,13 @@
 try:
     TEXT = unicode
 except NameError: #pragma NO COVER Py3k
+    PY3 = True
     TEXT = str
     STRING_TYPES = (str, bytes)
     def b(x, encoding='ascii'):
         return bytes(x, encoding)
 else: #pragma NO COVER Python2
+    PY3 = False
     STRING_TYPES = (unicode, bytes)
     def b(x, encoding='ascii'):
         if isinstance(x, unicode):

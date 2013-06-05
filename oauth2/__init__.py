@@ -36,6 +36,7 @@ from ._compat import parse_qs
 from ._compat import quote
 from ._compat import STRING_TYPES
 from ._compat import TEXT
+from ._compat import u
 from ._compat import unquote
 from ._compat import unquote_to_bytes
 from ._compat import urlencode
@@ -287,7 +288,7 @@ class Token(object):
         if not len(s):
             raise ValueError("Invalid parameter string.")
 
-        params = parse_qs(s, keep_blank_values=False)
+        params = parse_qs(u(s), keep_blank_values=False)
         if not len(params):
             raise ValueError("Invalid parameter string.")
 

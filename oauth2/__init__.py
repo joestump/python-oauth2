@@ -31,6 +31,7 @@ import binascii
 import httplib2
 
 from ._compat import PY3
+from ._compat import b
 from ._compat import parse_qs
 from ._compat import quote
 from ._compat import STRING_TYPES
@@ -614,10 +615,11 @@ class Request(dict):
     @staticmethod
     def _split_url_string(param_str):
         """Turn URL string into parameters."""
-        #XXX parse_qs is leaving the encoded bytes after un-escaping
-        #parameters = parse_qs(param_str.encode('utf-8'),
-        parameters = parse_qs(param_str,
-                              keep_blank_values=True)
+        if not PY3:
+            # If passed unicode with quoted UTF8, Python2's parse_qs leaves
+            # mojibake'd uniocde after unquoting, so encode first.
+            param_str = b(param_str, 'utf-8')
+        parameters = parse_qs(param_str, keep_blank_values=True)
         for k, v in parameters.items():
             parameters[k] = unquote_to_bytes(v[0])
         return parameters

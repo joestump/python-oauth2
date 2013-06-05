@@ -552,9 +552,9 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         self.assertEquals(exp.netloc, res.netloc)
         self.assertEquals(exp.path, res.path)
 
-        a = parse_qs(exp.query)
-        b = parse_qs(res.query)
-        self.assertEquals(a, b)
+        exp_parsed = parse_qs(exp.query)
+        res_parsed = parse_qs(res.query)
+        self.assertEquals(exp_parsed, res_parsed)
 
     def test_to_url_with_query(self):
         url = ("https://www.google.com/m8/feeds/contacts/default/full/"

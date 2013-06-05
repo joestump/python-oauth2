@@ -393,7 +393,7 @@ class Request(dict):
         """Serialize as a header for an HTTPAuth request."""
         oauth_params = ((k, v) for k, v in self.items() 
                             if k.startswith('oauth_'))
-        stringy_params = ((k, escape(str(v))) for k, v in oauth_params)
+        stringy_params = ((k, escape(v)) for k, v in oauth_params)
         header_params = ('%s="%s"' % (k, v) for k, v in stringy_params)
         params_header = ', '.join(header_params)
  

@@ -405,14 +405,14 @@ class Request(dict):
  
     def to_postdata(self):
         """Serialize as post data for a POST request."""
-        d = {}
-        for k, v in self.items():
-            d[k.encode('utf-8')] = to_utf8_optional_iterator(v)
+        items = []
+        for k, v in sorted(self.items()): # predictable for testing
+            items.append((k.encode('utf-8'), to_utf8_optional_iterator(v)))
 
         # tell urlencode to deal with sequence values and map them correctly
         # to resulting querystring. for example self["k"] = ["v1", "v2"] will
         # result in 'k=v1&k=v2' and not k=%5B%27v1%27%2C+%27v2%27%5D
-        return urlencode(d, True).replace('+', '%20')
+        return urlencode(items, True).replace('+', '%20')
  
     def to_url(self):
         """Serialize as a URL for a GET request."""

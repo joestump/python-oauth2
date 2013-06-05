@@ -499,13 +499,14 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         self.failUnlessReallyEqual(
             req.to_postdata(),
             ('nonasciithing=q%C2%BFu%C3%A9%20%2Caasp%20u%3F..a.s'
-             '&oauth_nonce=4572616e48616d6d65724c61686176'
-             '&oauth_timestamp=137131200'
              '&oauth_consumer_key=0685bd9184jfhq22'
+             '&oauth_nonce=4572616e48616d6d65724c61686176'
+             '&oauth_signature=wOJIO9A2W5mFwDgiDvZbTSMK%252FPY%253D'
              '&oauth_signature_method=HMAC-SHA1'
-             '&oauth_version=1.0'
+             '&oauth_timestamp=137131200'
              '&oauth_token=ad180jjd733klru7'
-             '&oauth_signature=wOJIO9A2W5mFwDgiDvZbTSMK%252FPY%253D'))
+             '&oauth_version=1.0'
+            ))
 
     def test_to_postdata(self):
         realm = "http://sp.example.com/"

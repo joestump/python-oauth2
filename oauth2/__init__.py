@@ -269,15 +269,15 @@ class Token(object):
         The resulting string includes the token's secret, so you should never
         send or store this string where a third party can read it.
         """
-
-        data = {
-            'oauth_token': self.key,
-            'oauth_token_secret': self.secret,
-        }
+        items = [
+            ('oauth_token', self.key),
+            ('oauth_token_secret', self.secret),
+        ]
 
         if self.callback_confirmed is not None:
-            data['oauth_callback_confirmed'] = self.callback_confirmed
-        return urlencode(data)
+            items.append(
+                ('oauth_callback_confirmed', self.callback_confirmed))
+        return urlencode(items)
  
     @staticmethod
     def from_string(s):

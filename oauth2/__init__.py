@@ -593,7 +593,7 @@ class Request(dict):
         parts = header.split(',')
         for param in parts:
             # Ignore realm parameter.
-            if param.find('realm') > -1:
+            if param.lower().startswith('realm='):
                 continue
             # Remove whitespace.
             param = param.strip()

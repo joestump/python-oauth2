@@ -224,7 +224,7 @@ class TestToken(unittest.TestCase):
         # TODO: What about copying the verifier to the new token?
         # self.assertEqual(self.token.verifier, new.verifier)
 
-    def test_to_string(self):
+    def test_to_string_magic_method(self):
         tok = oauth.Token('tooken', 'seecret')
         self.assertEqual(str(tok), 'oauth_token_secret=seecret&oauth_token=tooken')
 
@@ -302,6 +302,14 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         req = oauth.Request(method, url2)
         self.assertEquals(req.normalized_url, exp2)
         self.assertEquals(req.url, url2)
+
+    def test_url_lowercases_scheme_and_authority(self):
+        """Lowercase scheme and authority in URL normalization."""
+        # http://oauth.net/core/1.0a/#rfc.section.9.1.2
+        # https://github.com/joestump/python-oauth2/issues/29
+        url = 'HTTP://Example.com/resource'
+        req = oauth.Request("GET", url)
+        self.assertEquals(req.normalized_url, "http://example.com/resource")
 
     def test_bad_url(self):
         request = oauth.Request()

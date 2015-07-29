@@ -914,6 +914,63 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), con, tok)
         self.assertEquals(req['oauth_signature'], 'IBw5mfvoCsDjgpcsVKbyvsDqQaU=')
 
+
+    def test_from_request_works_with_wsgi(self):
+        """Make sure WSGI header HTTP_AUTHORIZATION is detected correctly."""
+        url = "http://sp.example.com/"
+
+        params = {
+            'oauth_version': "1.0",
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': "137131200",
+            'oauth_consumer_key': "0685bd9184jfhq22",
+            'oauth_signature_method': "HMAC-SHA1",
+            'oauth_token': "ad180jjd733klru7",
+            'oauth_signature': "wOJIO9A2W5mFwDgiDvZbTSMK%2FPY%3D",
+        }
+
+        req = oauth.Request("GET", url, params)
+        headers = req.to_header()
+
+        # Munge the headers
+        headers['HTTP_AUTHORIZATION'] = headers['Authorization']
+        del headers['Authorization'] 
+
+        # Test from the headers
+        req = oauth.Request.from_request("GET", url, headers)
+        self.assertEquals(req.method, "GET")
+        self.assertEquals(req.url, url)
+        self.assertEquals(params, req.copy())
+
+
+    def test_from_request_is_case_insensitive_checking_for_auth(self):
+        """Checks for the Authorization header should be case insensitive."""
+        url = "http://sp.example.com/"
+
+        params = {
+            'oauth_version': "1.0",
+            'oauth_nonce': "4572616e48616d6d65724c61686176",
+            'oauth_timestamp': "137131200",
+            'oauth_consumer_key': "0685bd9184jfhq22",
+            'oauth_signature_method': "HMAC-SHA1",
+            'oauth_token': "ad180jjd733klru7",
+            'oauth_signature': "wOJIO9A2W5mFwDgiDvZbTSMK%2FPY%3D",
+        }
+
+        req = oauth.Request("GET", url, params)
+        headers = req.to_header()
+
+        # Munge the headers
+        headers['authorization'] = headers['Authorization']
+        del headers['Authorization'] 
+
+        # Test from the headers
+        req = oauth.Request.from_request("GET", url, headers)
+        self.assertEquals(req.method, "GET")
+        self.assertEquals(req.url, url)
+        self.assertEquals(params, req.copy())
+
+
     def test_from_request(self):
         url = "http://sp.example.com/"
 

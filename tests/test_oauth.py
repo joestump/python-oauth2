@@ -1290,6 +1290,38 @@ class TestClient(unittest.TestCase):
         client.request(uri, 'GET')
 
     @mock.patch('httplib2.Http.request')
+    def test_url_with_query_string_body_none(self, mockHttpRequest):
+        uri = 'http://example.com/foo/bar/?show=thundercats&character=snarf'
+        client = oauth.Client(self.consumer, None)
+        random_result = random.randint(1,100)
+
+        def mockrequest(cl, ur, **kw):
+            self.failUnless(cl is client)
+            self.failUnlessEqual(frozenset(kw.keys()), frozenset(['method', 'body', 'redirections', 'connection_type', 'headers']))
+            self.failUnlessEqual(kw['body'], None)
+            self.failUnlessEqual(kw['connection_type'], None)
+            self.failUnlessEqual(kw['method'], 'GET')
+            self.failUnlessEqual(kw['redirections'], httplib2.DEFAULT_MAX_REDIRECTS)
+            self.failUnless(isinstance(kw['headers'], dict))
+
+            req = oauth.Request.from_consumer_and_token(self.consumer, None,
+                                                        http_method='GET', http_url=uri, parameters={})
+            req.sign_request(oauth.SignatureMethod_HMAC_SHA1(), self.consumer, None)
+            expected = parse_qsl(urlparse.urlparse(req.to_url()).query)
+            actual = parse_qsl(urlparse.urlparse(ur).query)
+            self.failUnlessEqual(len(expected), len(actual))
+            actual = dict(actual)
+            for key, value in expected:
+                if key not in ('oauth_signature', 'oauth_nonce', 'oauth_timestamp'):
+                    self.failUnlessEqual(actual[key], value)
+
+            return random_result
+
+        mockHttpRequest.side_effect = mockrequest
+
+        client.request(uri, 'GET', body=None)
+
+    @mock.patch('httplib2.Http.request')
     @mock.patch('oauth2.Request.from_consumer_and_token')
     def test_multiple_values_for_a_key(self, mockReqConstructor, mockHttpRequest):
         client = oauth.Client(self.consumer, None)

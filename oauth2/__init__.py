@@ -519,10 +519,16 @@ class Request(dict):
             parameters = {}
  
         # Headers
-        if headers and 'Authorization' in headers:
-            auth_header = headers['Authorization']
+        if headers:
+            auth_header = None
+            if 'Authorization' in headers:
+                auth_header = headers['Authorization']
+            elif 'HTTP_AUTHORIZATION' in headers:
+                # Land on HTTP_AUTHORIZATION header in case of mod_wsgi  
+                auth_header = headers['HTTP_AUTHORIZATION']
+        
             # Check that the authorization header is OAuth.
-            if auth_header[:6] == 'OAuth ':
+            if auth_header and auth_header[:6] == 'OAuth ':
                 auth_header = auth_header[6:]
                 try:
                     # Get the parameters from the header.
@@ -750,6 +756,7 @@ class Server(object):
     def _check_signature(self, request, consumer, token):
         timestamp, nonce = request._get_timestamp_nonce()
         self._check_timestamp(timestamp)
+        self._check_nonce(consumer, token, nonce)
         signature_method = self._get_signature_method(request)
 
         try:
@@ -775,6 +782,10 @@ class Server(object):
             raise Error('Expired timestamp: given %d and now %s has a '
                 'greater difference than threshold %d' % (timestamp, now, 
                     self.timestamp_threshold))
+            
+    def _check_nonce(self, consumer, token, nonce):
+        # Always allow it. Subclass needs to override this method to check nonce
+        return True
 
 
 class SignatureMethod(object):

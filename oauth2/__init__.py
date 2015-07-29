@@ -420,7 +420,7 @@ class Request(dict):
             query = base_url[4]
         query = parse_qs(query)
         for k, v in self.items():
-            query.setdefault(k, []).append(v)
+            query.setdefault(k, []).append(to_utf8_optional_iterator(v))
         
         try:
             scheme = base_url.scheme
@@ -615,8 +615,7 @@ class Request(dict):
 class Client(httplib2.Http):
     """OAuthClient is a worker to attempt to execute a request."""
 
-    def __init__(self, consumer, token=None, cache=None, timeout=None,
-        proxy_info=None):
+    def __init__(self, consumer, token=None, **kwargs):
 
         if consumer is not None and not isinstance(consumer, Consumer):
             raise ValueError("Invalid consumer.")
@@ -628,7 +627,7 @@ class Client(httplib2.Http):
         self.token = token
         self.method = SignatureMethod_HMAC_SHA1()
 
-        httplib2.Http.__init__(self, cache=cache, timeout=timeout, proxy_info=proxy_info)
+        super(Client, self).__init__(**kwargs)
 
     def set_signature_method(self, method):
         if not isinstance(method, SignatureMethod):

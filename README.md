@@ -23,7 +23,7 @@ url = "http://example.com/photos"
 params = {
     'oauth_version': "1.0",
     'oauth_nonce': oauth.generate_nonce(),
-    'oauth_timestamp': int(time.time())
+    'oauth_timestamp': int(time.time()),
     'user': 'joestump',
     'photoid': 555555555555
 }

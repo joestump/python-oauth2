@@ -206,13 +206,18 @@ class TestToken(unittest.TestCase):
         self.assertEqual(url, '%s%s' % (cb, verifier_str))
 
     def test_to_string(self):
-        string = 'oauth_token_secret=%s&oauth_token=%s' % (self.secret,
-                                                           self.key)
-        self.assertEqual(self.token.to_string(), string)
+        expected = {'oauth_token_secret': self.secret,
+                    'oauth_token': self.key}
+        self.assertEqual(dict(parse_qsl(self.token.to_string())), expected)
 
         self.token.set_callback('http://www.example.com/my-callback')
-        string += '&oauth_callback_confirmed=true'
-        self.assertEqual(self.token.to_string(), string)
+        expected['oauth_callback_confirmed'] = 'true'
+        self.assertEqual(dict(parse_qsl(self.token.to_string())), expected)
+
+    def test___str__(self):
+        expected = {'oauth_token_secret': self.secret,
+                    'oauth_token': self.key}
+        self.assertEqual(dict(parse_qsl(str(self.token))), expected)
 
     def _compare_tokens(self, new):
         self.assertEqual(self.token.key, new.key)
@@ -223,10 +228,6 @@ class TestToken(unittest.TestCase):
                          new.callback_confirmed)
         # TODO: What about copying the verifier to the new token?
         # self.assertEqual(self.token.verifier, new.verifier)
-
-    def test_to_string(self):
-        tok = oauth.Token('tooken', 'seecret')
-        self.assertEqual(str(tok), 'oauth_token_secret=seecret&oauth_token=tooken')
 
     def test_from_string(self):
         self.assertRaises(ValueError, lambda: oauth.Token.from_string(''))
@@ -469,12 +470,14 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         params.update(other_params)
 
         req = oauth.Request("GET", "http://example.com", params)
+        scheme_host, qs = req.to_url().split('?')
+        self.assertEquals(scheme_host, 'http://example.com')
         self.assertEquals(
-            req.to_url(), 
-            'http://example.com?oauth_consumer=asdfasdfasdf&'
+            dict(parse_qsl(qs)), 
+            dict(parse_qsl('oauth_consumer=asdfasdfasdf&'
             'uni_unicode_2=%C3%A5%C3%85%C3%B8%C3%98&'
             'uni_utf8=%C2%AE&multi=%5B%27FOO%27%2C+%27BAR%27%5D&'
-            'uni_unicode=%C2%AE&bar=foo&foo=baz')
+            'uni_unicode=%C2%AE&bar=foo&foo=baz')))
 
     def test_to_header(self):
         realm = "http://sp.example.com/"
@@ -525,7 +528,9 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
         req = oauth.Request("GET", realm, params)
 
-        self.failUnlessReallyEqual(req.to_postdata(), 'nonasciithing=q%C2%BFu%C3%A9%20%2Caasp%20u%3F..a.s&oauth_nonce=4572616e48616d6d65724c61686176&oauth_timestamp=137131200&oauth_consumer_key=0685bd9184jfhq22&oauth_signature_method=HMAC-SHA1&oauth_version=1.0&oauth_token=ad180jjd733klru7&oauth_signature=wOJIO9A2W5mFwDgiDvZbTSMK%252FPY%253D')
+        expected = 'nonasciithing=q%C2%BFu%C3%A9%20%2Caasp%20u%3F..a.s&oauth_nonce=4572616e48616d6d65724c61686176&oauth_timestamp=137131200&oauth_consumer_key=0685bd9184jfhq22&oauth_signature_method=HMAC-SHA1&oauth_version=1.0&oauth_token=ad180jjd733klru7&oauth_signature=wOJIO9A2W5mFwDgiDvZbTSMK%252FPY%253D'
+        self.failUnlessReallyEqual(dict(parse_qsl(req.to_postdata())),
+                                   dict(parse_qsl(expected)))
 
     def test_to_postdata(self):
         realm = "http://sp.example.com/"

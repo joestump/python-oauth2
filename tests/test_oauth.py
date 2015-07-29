@@ -31,7 +31,6 @@ import random
 import time
 import urllib
 import urlparse
-from types import ListType
 import mock
 import httplib2
 
@@ -42,7 +41,7 @@ except ImportError:
     from cgi import parse_qs, parse_qsl
 
 
-sys.path[0:0] = [os.path.join(os.path.dirname(__file__), ".."),]
+sys.path[0:0] = [os.path.join(os.path.dirname(__file__), "..")]
 
 
 class TestError(unittest.TestCase):
@@ -374,6 +373,32 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
         req = oauth.Request("GET", "http://example.com", params)
         self.assertEquals(other_params, req.get_nonoauth_parameters())
+
+    def test_to_url_works_with_non_ascii_parameters(self):
+
+        oauth_params = {
+            'oauth_consumer': 'asdfasdfasdf'
+        }
+
+        other_params = {
+            u'foo': u'baz',
+            u'bar': u'foo',
+            u'multi': [u'FOO',u'BAR'],
+            u'uni_utf8': u'\xae',
+            u'uni_unicode': u'\u00ae',
+            u'uni_unicode_2': u'åÅøØ',
+        }
+
+        params = oauth_params
+        params.update(other_params)
+
+        req = oauth.Request("GET", "http://example.com", params)
+        self.assertEquals(
+            req.to_url(), 
+            'http://example.com?oauth_consumer=asdfasdfasdf&'
+            'uni_unicode_2=%C3%A5%C3%85%C3%B8%C3%98&'
+            'uni_utf8=%C2%AE&multi=%5B%27FOO%27%2C+%27BAR%27%5D&'
+            'uni_unicode=%C2%AE&bar=foo&foo=baz')
 
     def test_to_header(self):
         realm = "http://sp.example.com/"

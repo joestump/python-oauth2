@@ -1218,6 +1218,18 @@ class TestClient(unittest.TestCase):
         except ValueError:
             pass
 
+    def test_init_passes_kwargs_to_httplib2(self):
+        class Blah():
+            pass
+ 
+        consumer = oauth.Consumer('token', 'secret')
+ 
+        # httplib2 options
+        client = oauth.Client(consumer, None, cache='.cache', timeout=3, disable_ssl_certificate_validation=True)
+        self.assertNotEquals(client.cache, None)
+        self.assertEquals(client.timeout, 3)
+
+
     def test_access_token_get(self):
         """Test getting an access token via GET."""
         client = oauth.Client(self.consumer, None)

@@ -357,7 +357,7 @@ class Request(dict):
     def url(self, value):
         self.__dict__['url'] = value
         if value is not None:
-            scheme, netloc, path, params, query, fragment = urlparse.urlparse(value)
+            scheme, netloc, path, query, fragment = urlparse.urlsplit(value)
 
             # Exclude default port numbers.
             if scheme == 'http' and netloc[-3:] == ':80':
@@ -368,7 +368,7 @@ class Request(dict):
                 raise ValueError("Unsupported URL %s (%s)." % (value, scheme))
 
             # Normalized URL excludes params, query, and fragment.
-            self.normalized_url = urlparse.urlunparse((scheme, netloc, path, None, None, None))
+            self.normalized_url = urlparse.urlunsplit((scheme, netloc, path, None, None))
         else:
             self.normalized_url = None
             self.__dict__['url'] = None

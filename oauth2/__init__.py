@@ -164,12 +164,12 @@ def generate_timestamp():
 
 def generate_nonce(length=8):
     """Generate pseudorandom number."""
-    return ''.join([str(random.randint(0, 9)) for i in range(length)])
+    return ''.join([str(random.SystemRandom().randint(0, 9)) for i in range(length)])
 
 
 def generate_verifier(length=8):
     """Generate pseudorandom number."""
-    return ''.join([str(random.randint(0, 9)) for i in range(length)])
+    return ''.join([str(random.SystemRandom().randint(0, 9)) for i in range(length)])
 
 
 class Consumer(object):
@@ -357,7 +357,7 @@ class Request(dict):
     def url(self, value):
         self.__dict__['url'] = value
         if value is not None:
-            scheme, netloc, path, params, query, fragment = urlparse.urlparse(value)
+            scheme, netloc, path, query, fragment = urlparse.urlsplit(value)
 
             # Exclude default port numbers.
             if scheme == 'http' and netloc[-3:] == ':80':
@@ -368,7 +368,7 @@ class Request(dict):
                 raise ValueError("Unsupported URL %s (%s)." % (value, scheme))
 
             # Normalized URL excludes params, query, and fragment.
-            self.normalized_url = urlparse.urlunparse((scheme, netloc, path, None, None, None))
+            self.normalized_url = urlparse.urlunsplit((scheme, netloc, path, None, None))
         else:
             self.normalized_url = None
             self.__dict__['url'] = None
@@ -418,24 +418,24 @@ class Request(dict):
         except AttributeError: #pragma NO COVER
             # must be python <2.5
             query = base_url[4]
-        query = parse_qs(query)
+        query = parse_qs(to_utf8(query))
         for k, v in self.items():
-            query.setdefault(k, []).append(v)
+            query.setdefault(to_utf8(k), []).append(to_utf8_optional_iterator(v))
         
         try:
-            scheme = base_url.scheme
-            netloc = base_url.netloc
-            path = base_url.path
-            params = base_url.params
-            fragment = base_url.fragment
+            scheme = to_utf8(base_url.scheme)
+            netloc = to_utf8(base_url.netloc)
+            path = to_utf8(base_url.path)
+            params = to_utf8(base_url.params)
+            fragment = to_utf8(base_url.fragment)
         except AttributeError: #pragma NO COVER
             # must be python <2.5
-            scheme = base_url[0]
-            netloc = base_url[1]
-            path = base_url[2]
-            params = base_url[3]
-            fragment = base_url[5]
-        
+            scheme = to_utf8(base_url[0])
+            netloc = to_utf8(base_url[1])
+            path = to_utf8(base_url[2])
+            params = to_utf8(base_url[3])
+            fragment = to_utf8(base_url[5])
+
         url = (scheme, netloc, path, params,
                urllib.urlencode(query, True), fragment)
         return urlparse.urlunparse(url)
@@ -470,11 +470,11 @@ class Request(dict):
         query = urlparse.urlparse(self.url)[4]
 
         url_items = self._split_url_string(query).items()
-        url_items = [(to_utf8(k), to_utf8(v)) for k, v in url_items if k != 'oauth_signature' ]
+        url_items = [(to_utf8(k), to_utf8_optional_iterator(v)) for k, v in url_items if k != 'oauth_signature' ]
         items.extend(url_items)
 
         items.sort()
-        encoded_str = urllib.urlencode(items)
+        encoded_str = urllib.urlencode(items, True)
         # Encode signature parameters per Oauth Core 1.0 protocol
         # spec draft 7, section 3.6
         # (http://tools.ietf.org/html/draft-hammer-oauth-07#section-3.6)
@@ -509,7 +509,7 @@ class Request(dict):
     @classmethod
     def make_nonce(cls):
         """Generate pseudorandom number."""
-        return str(random.randint(0, 100000000))
+        return str(random.SystemRandom().randint(0, 100000000))
  
     @classmethod
     def from_request(cls, http_method, http_url, headers=None, parameters=None,
@@ -569,8 +569,8 @@ class Request(dict):
             if token.verifier:
                 parameters['oauth_verifier'] = token.verifier
  
-        return Request(http_method, http_url, parameters, body=body, 
-                       is_form_encoded=is_form_encoded)
+        return cls(http_method, http_url, parameters, body=body, 
+            is_form_encoded=is_form_encoded)
  
     @classmethod
     def from_token_and_callback(cls, token, callback=None, 
@@ -608,15 +608,17 @@ class Request(dict):
         """Turn URL string into parameters."""
         parameters = parse_qs(param_str.encode('utf-8'), keep_blank_values=True)
         for k, v in parameters.iteritems():
-            parameters[k] = urllib.unquote(v[0])
+            if len(v) == 1:
+                parameters[k] = urllib.unquote(v[0])
+            else:
+                parameters[k] = sorted([urllib.unquote(s) for s in v])
         return parameters
 
 
 class Client(httplib2.Http):
     """OAuthClient is a worker to attempt to execute a request."""
 
-    def __init__(self, consumer, token=None, cache=None, timeout=None,
-        proxy_info=None):
+    def __init__(self, consumer, token=None, **kwargs):
 
         if consumer is not None and not isinstance(consumer, Consumer):
             raise ValueError("Invalid consumer.")
@@ -628,7 +630,7 @@ class Client(httplib2.Http):
         self.token = token
         self.method = SignatureMethod_HMAC_SHA1()
 
-        httplib2.Http.__init__(self, cache=cache, timeout=timeout, proxy_info=proxy_info)
+        super(Client, self).__init__(**kwargs)
 
     def set_signature_method(self, method):
         if not isinstance(method, SignatureMethod):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from setuptools import setup, find_packages
+from setuptools import setup
 import os, re
 
 PKG='oauth2'
@@ -39,7 +39,7 @@ setup(name=PKG,
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: Implementation :: CPython",
       ],
-      packages = find_packages(),
+      packages = ['oauth2'],
       install_requires = ['httplib2'],
       license = "MIT License",
       keywords="oauth",

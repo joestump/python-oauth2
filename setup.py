@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from setuptools import setup, find_packages
+from setuptools import setup
 import os, re
 
 PKG='oauth2'
@@ -15,9 +15,8 @@ else:
     if mo:
         mverstr = mo.group(1)
     else:
-        print("unable to find version in %s" % (VERSIONFILE,))
-        raise RuntimeError("if %s.py exists, it must be well-formed"
-                                % (VERSIONFILE,))
+        print "unable to find version in %s" % (VERSIONFILE,)
+        raise RuntimeError("if %s.py exists, it must be well-formed" % (VERSIONFILE,))
     AVSRE = r"^auto_build_num *= *['\"]([^'\"]*)['\"]"
     mo = re.search(AVSRE, verstrline, re.M)
     if mo:
@@ -32,6 +31,7 @@ setup(name=PKG,
       author="Joe Stump",
       author_email="joe@simplegeo.com",
       url="http://github.com/simplegeo/python-oauth2",
+      packages = ['oauth2'],
       classifiers=[
         "Intended Audience :: Developers",
         "Programming Language :: Python :: 2",

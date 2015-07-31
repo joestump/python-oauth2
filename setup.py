@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-from setuptools import setup
 from __future__ import print_function
-import os, re
+from setuptools import setup
+import os
+import re
 
 PKG='oauth2'
 VERSIONFILE = os.path.join('oauth2', '_version.py')

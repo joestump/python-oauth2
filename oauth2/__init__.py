@@ -31,19 +31,8 @@ import hmac
 import binascii
 import httplib2
 
-try:
-    from urlparse import parse_qs
-    parse_qs # placate pyflakes
-except ImportError:
-    # fall back for Python 2.5
-    from cgi import parse_qs
-
-try:
-    from hashlib import sha1
-    sha = sha1
-except ImportError:
-    # hashlib was added in Python 2.5
-    import sha
+from urlparse import parse_qs
+from hashlib import sha1 as sha
 
 import _version
 

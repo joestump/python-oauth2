@@ -49,19 +49,19 @@ class TestError(unittest.TestCase):
     def test_message(self):
         try:
             raise oauth.Error
-        except oauth.Error, e:
+        except oauth.Error as e:
             self.assertEqual(e.message, 'OAuth error occurred.')
 
         msg = 'OMG THINGS BROKE!!!!'
         try:
             raise oauth.Error(msg)
-        except oauth.Error, e:
+        except oauth.Error as e:
             self.assertEqual(e.message, msg)
 
     def test_str(self):
         try:
             raise oauth.Error
-        except oauth.Error, e:
+        except oauth.Error as e:
             self.assertEquals(str(e), 'OAuth error occurred.')
 
 class TestGenerateFunctions(unittest.TestCase):
@@ -286,7 +286,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
             self.fail("AttributeError should have been raised on empty url.")
         except AttributeError:
             pass
-        except Exception, e:
+        except Exception as e:
             self.fail(str(e))
 
     def test_url(self):

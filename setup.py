@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+
 from setuptools import setup
+from __future__ import print_function
 import os, re
 
 PKG='oauth2'
@@ -15,7 +17,7 @@ else:
     if mo:
         mverstr = mo.group(1)
     else:
-        print "unable to find version in %s" % (VERSIONFILE,)
+        print ("unable to find version in %s") % (VERSIONFILE,)
         raise RuntimeError("if %s.py exists, it must be well-formed" % (VERSIONFILE,))
     AVSRE = r"^auto_build_num *= *['\"]([^'\"]*)['\"]"
     mo = re.search(AVSRE, verstrline, re.M)
@@ -36,5 +38,6 @@ setup(name=PKG,
       license = "MIT License",
       keywords="oauth",
       zip_safe = True,
+      use_2to3=True,
       test_suite="tests",
       tests_require=['coverage', 'mock'])

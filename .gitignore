@@ -1,3 +1,6 @@
+.eggs
+build
+dist
 *.py?
 *.egg-info
 *.swp

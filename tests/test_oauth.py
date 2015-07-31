@@ -215,8 +215,7 @@ class TestToken(unittest.TestCase):
         self.assertEqual(url, '%s%s' % (cb, verifier_str))
 
     def test_to_string(self):
-        string = 'oauth_token_secret=%s&oauth_token=%s' % (self.secret,
-                                                           self.key)
+        string = 'oauth_token=%s&oauth_token_secret=%s' % (self.key, self.secret)
         self.assertEqual(self.token.to_string(), string)
 
         self.token.set_callback('http://www.example.com/my-callback')
@@ -443,10 +442,10 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         }
 
         req = oauth.Request("GET", url, params)
-        res = urlparse.urlparse(req.to_url())
+        res = urlparse(req.to_url())
 
         params['nonasciithing'] = params['nonasciithing'].encode('utf-8')
-        exp = urlparse.urlparse("%s?%s" % (url, urllib.urlencode(params)))
+        exp = urlparse("%s?%s" % (url, urlencode(params)))
 
         self.assertEquals(exp.netloc, res.netloc)
         self.assertEquals(exp.path, res.path)
@@ -1016,8 +1015,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         params['oauth_token'] = tok.key
         params['oauth_consumer_key'] = con.key
         req = oauth.Request(method="GET", url=url, parameters=params)
-    
-        # TODO: this changes to b input?
+
         methods = {
             b'DX01TdHws7OninCLK9VztNTH1M4=': oauth.SignatureMethod_HMAC_SHA1(),
             b'con-test-secret&tok-test-secret': oauth.SignatureMethod_PLAINTEXT()

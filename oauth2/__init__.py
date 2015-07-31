@@ -40,6 +40,8 @@ from ._compat import u
 from ._compat import unquote
 from ._compat import unquote_to_bytes
 from ._compat import urlencode
+from ._compat import urlsplit
+from ._compat import urlunsplit
 from ._compat import urlparse
 from ._compat import urlunparse
 from ._version import __version__
@@ -355,12 +357,11 @@ class Request(dict):
         self.body = body
         self.is_form_encoded = is_form_encoded
 
-
     @setter
     def url(self, value):
         self.__dict__['url'] = value
         if value is not None:
-            scheme, netloc, path, params, query, fragment = urlparse(value)
+            scheme, netloc, path, query, fragment = urlsplit(value)
 
             # Exclude default port numbers.
             if scheme == 'http' and netloc[-3:] == ':80':
@@ -371,7 +372,7 @@ class Request(dict):
                 raise ValueError("Unsupported URL %s (%s)." % (value, scheme))
 
             # Normalized URL excludes params, query, and fragment.
-            self.normalized_url = urlunparse((scheme, netloc, path, None, None, None))
+            self.normalized_url = urlunsplit((scheme, netloc, path, None, None))
         else:
             self.normalized_url = None
             self.__dict__['url'] = None
@@ -416,21 +417,26 @@ class Request(dict):
     def to_url(self):
         """Serialize as a URL for a GET request."""
         base_url = urlparse(self.url)
-        try:
-            query = base_url.query
-        except AttributeError: #pragma NO COVER
-            # must be python <2.5
-            query = base_url[4]
-        query = parse_qs(to_utf8(query))
-        for k, v in self.items():
-            query.setdefault(to_utf8(k), []).append(to_utf8_optional_iterator(v))
-        
-        scheme = to_utf8(base_url.scheme)
-        netloc = to_utf8(base_url.netloc)
-        path = to_utf8(base_url.path)
-        params = to_utf8(base_url.params)
-        fragment = to_utf8(base_url.fragment)
-        
+
+        if PY3:
+            query = parse_qs(base_url.query)
+            for k, v in self.items():
+                query.setdefault(k, []).append(to_utf8_optional_iterator(v))
+            scheme = base_url.scheme
+            netloc = base_url.netloc
+            path = base_url.path
+            params = base_url.params
+            fragment = base_url.fragment
+        else:
+            query = parse_qs(to_utf8(base_url.query))
+            for k, v in self.items():
+                query.setdefault(to_utf8(k), []).append(to_utf8_optional_iterator(v))
+            scheme = to_utf8(base_url.scheme)
+            netloc = to_utf8(base_url.netloc)
+            path = to_utf8(base_url.path)
+            params = to_utf8(base_url.params)
+            fragment = to_utf8(base_url.fragment)
+
         url = (scheme, netloc, path, params, urlencode(query, True), fragment)
         return urlunparse(url)
 

@@ -31,6 +31,8 @@ except ImportError: #pragma NO COVER Py3k
     from urllib.parse import unquote
     from urllib.parse import unquote_to_bytes
     from urllib.parse import urlencode
+    from urllib.parse import urlsplit
+    from urllib.parse import urlunsplit
     from urllib.parse import urlparse
     from urllib.parse import urlunparse
 else: #pragma NO COVER Python2
@@ -39,6 +41,8 @@ else: #pragma NO COVER Python2
     from urllib import quote
     from urllib import unquote
     from urllib import urlencode
+    from urlparse import urlsplit
+    from urlparse import urlunsplit
     from urlparse import urlparse
     from urlparse import urlunparse
     unquote_to_bytes = unquote

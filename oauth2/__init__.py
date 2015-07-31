@@ -483,7 +483,7 @@ class Request(dict):
         try:
             url = (scheme, netloc, path, params,
                    urllib.urlencode(query, True), fragment)
-            return urllib.urlunparse(url)
+            return urlparse.urlunparse(url)
         except AttributeError:
             url = (scheme, netloc, path, params,
                    urlparse.urlencode(query, True), fragment)
@@ -535,9 +535,8 @@ class Request(dict):
         items.extend(url_items)
 
         items.sort()
-        encoded_str = urllib.urlencode(items, True)
         try:
-            encoded_str = urllib.urlencode(items)
+            encoded_str = urllib.urlencode(items, True)
         except AttributeError:
             encoded_str = urlparse.urlencode(items)
         # Encode signature parameters per Oauth Core 1.0 protocol

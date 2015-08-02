@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from setuptools import setup, find_packages
+from setuptools import setup
 import os, re
 
 PKG='oauth2'
@@ -31,7 +31,7 @@ setup(name=PKG,
       author="Joe Stump",
       author_email="joe@simplegeo.com",
       url="http://github.com/simplegeo/python-oauth2",
-      packages = find_packages(),
+      packages = ['oauth2'],
       install_requires = ['httplib2'],
       license = "MIT License",
       keywords="oauth",

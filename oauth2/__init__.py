@@ -368,7 +368,8 @@ class Request(dict):
                 raise ValueError("Unsupported URL %s (%s)." % (value, scheme))
 
             # Normalized URL excludes params, query, and fragment.
-            self.normalized_url = urlparse.urlunsplit((scheme, netloc, path, None, None))
+            self.normalized_url = urlparse.urlunsplit((scheme.lower(),
+                netloc.lower(), path, None, None))
         else:
             self.normalized_url = None
             self.__dict__['url'] = None

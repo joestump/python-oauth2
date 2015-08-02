@@ -48,7 +48,7 @@ class TestError(unittest.TestCase):
     def test_message(self):
         try:
             raise oauth.Error
-        except oauth.Error, e:
+        except oauth.Error as e:
             self.assertEqual(e.message, 'OAuth error occurred.')
 
         msg = 'OMG THINGS BROKE!!!!'

@@ -2,6 +2,8 @@
 
 # Overview
 
+[![Join the chat at https://gitter.im/joestump/python-oauth2](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/joestump/python-oauth2?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 This code was originally forked from [Leah Culver and Andy Smith's oauth.py code](http://github.com/leah/python-oauth/). Some of the tests come from a [fork by Vic Fryzel](http://github.com/shellsage/python-oauth), while a revamped Request class and more tests were merged in from [Mark Paschal's fork](http://github.com/markpasc/python-oauth). A number of notable differences exist between this code and its forefathers:
 
 * 100% unit test coverage.

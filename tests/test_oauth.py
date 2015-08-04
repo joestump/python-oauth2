@@ -758,7 +758,6 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         req = oauth.Request("GET", url, None)
         self.assertEquals(req.normalized_url, 'http://social.yahooapis.com/v1/user/6677/connections;start=0;count=20')
         self.assertEquals(req.url, 'http://social.yahooapis.com/v1/user/6677/connections;start=0;count=20')
-        self.assertEqual(urlencode(sorted(foo.items())), res)
 
     def test_set_signature_method(self):
         consumer = oauth.Consumer('key', 'secret')

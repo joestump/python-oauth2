@@ -37,4 +37,12 @@ setup(name=PKG,
       keywords="oauth",
       zip_safe = True,
       test_suite="tests",
-      tests_require=['coverage', 'mock'])
+      tests_require=['coverage', 'mock'],
+      classifiers=[
+        'Programming Language :: Python :: 2.6',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 2 :: Only',
+        'License :: OSI Approved :: MIT License',
+        'Natural Language :: English',
+        'Development Status :: 5 - Production/Stable'
+      ])

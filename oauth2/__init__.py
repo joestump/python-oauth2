@@ -40,10 +40,11 @@ except ImportError:
 
 try:
     from hashlib import sha1
-    sha = sha1
+    sha_new = sha = sha1
 except ImportError:
     # hashlib was added in Python 2.5
-    import sha
+    import sha as sha_new
+    from sha import sha
 
 import _version
 
@@ -129,13 +130,10 @@ def to_unicode_optional_iterator(x):
     if isinstance(x, basestring):
         return to_unicode(x)
 
-    try:
-        l = list(x)
-    except TypeError, e:
-        assert 'is not iterable' in str(e)
+    if not hasattr(x, '__iter__'):
         return x
-    else:
-        return [ to_unicode(e) for e in l ]
+
+    return [ to_unicode(e) for e in list(x) ]
 
 def to_utf8_optional_iterator(x):
     """
@@ -145,13 +143,10 @@ def to_utf8_optional_iterator(x):
     if isinstance(x, basestring):
         return to_utf8(x)
 
-    try:
-        l = list(x)
-    except TypeError, e:
-        assert 'is not iterable' in str(e)
+    if not hasattr(x, '__iter__'):
         return x
-    else:
-        return [ to_utf8_if_string(e) for e in l ]
+
+    return [ to_utf8_if_string(e) for e in list(x) ]
 
 def escape(s):
     """Escape a URL including any /."""
@@ -458,13 +453,10 @@ class Request(dict):
             if isinstance(value, basestring):
                 items.append((to_utf8_if_string(key), to_utf8(value)))
             else:
-                try:
-                    value = list(value)
-                except TypeError, e:
-                    assert 'is not iterable' in str(e)
-                    items.append((to_utf8_if_string(key), to_utf8_if_string(value)))
+                if hasattr(value, '__iter__'):
+                    items.extend((to_utf8_if_string(key), to_utf8_if_string(item)) for item in list(value))
                 else:
-                    items.extend((to_utf8_if_string(key), to_utf8_if_string(item)) for item in value)
+                    items.append((to_utf8_if_string(key), to_utf8_if_string(value)))
 
         # Include any query string parameters from the provided URL
         query = urlparse.urlparse(self.url)[4]
@@ -844,7 +836,7 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
         """Builds the base signature string."""
         key, raw = self.signing_base(request, consumer, token)
 
-        hashed = hmac.new(key, raw, sha)
+        hashed = hmac.new(key, raw, sha_new)
 
         # Calculate the digest base 64.
         return binascii.b2a_base64(hashed.digest())[:-1]

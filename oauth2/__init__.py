@@ -284,7 +284,7 @@ class Token(object):
         if not len(s):
             raise ValueError("Invalid parameter string.")
 
-        params = parse_qs(s, keep_blank_values=False)
+        params = parse_qs(s, keep_blank_values=True)
         if not len(params):
             raise ValueError("Invalid parameter string.")
 

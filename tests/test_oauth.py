@@ -465,7 +465,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         other_params = {
             u'foo': u'baz',
             u'bar': u'foo',
-            u'multi': [u'FOO',u'BAR'],
+            u'multi': [u'FOO', u'BAR'],
             u'uni_utf8': u'\xae',
             u'uni_unicode': u'\u00ae',
             u'uni_unicode_2': u'åÅøØ',
@@ -487,7 +487,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
             'bar': 'foo',
             'uni_unicode_2': '%C3%A5%C3%85%C3%B8%C3%98',
             'uni_unicode': '%C2%AE',
-            'multi': '%5Bb%27FOO%27%2C+b%27BAR%27%5D',
+            'multi': '%5B%27FOO%27%2C+%27BAR%27%5D',
             'oauth_consumer': 'asdfasdfasdf'
         }
 

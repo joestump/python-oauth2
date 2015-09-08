@@ -23,6 +23,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
+import sys
 import random
 import time
 import unittest
@@ -52,6 +53,7 @@ _U2019 = u(_B2019, 'utf8') # u'\u2019'
 _B2766 = b'\xe2\x9d\xa6' # u'\u2766' encoded to UTF-8
 _U2766 = u(_B2766, 'utf8') # u'\u2766'
 
+PY3 = sys.version_info >= (3,)
 
 class TestError(unittest.TestCase):
     def test_message(self):
@@ -473,12 +475,24 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         params.update(other_params)
 
         req = oauth.Request("GET", "http://example.com", params)
-        self.assertEquals(
-            req.to_url(), 
-            'http://example.com?oauth_consumer=asdfasdfasdf&'
-            'uni_unicode_2=%C3%A5%C3%85%C3%B8%C3%98&'
-            'uni_utf8=%C2%AE&multi=%5B%27FOO%27%2C+%27BAR%27%5D&'
-            'uni_unicode=%C2%AE&bar=foo&foo=baz')
+
+        # We need to split out the host and params and check individually since the order is not determinate.
+        url_parts = req.to_url().split("?")
+        host = url_parts[0]
+        params = dict(item.strip().split("=") for item in url_parts[1].split("&"))
+
+        expected_params = {
+            'uni_utf8': '%C2%AE',
+            'foo': 'baz',
+            'bar': 'foo',
+            'uni_unicode_2': '%C3%A5%C3%85%C3%B8%C3%98',
+            'uni_unicode': '%C2%AE',
+            'multi': '%5Bb%27FOO%27%2C+b%27BAR%27%5D',
+            'oauth_consumer': 'asdfasdfasdf'
+        }
+
+        self.assertEquals("http://example.com", host)
+        self.assertEquals(expected_params, params)
 
     def test_to_header(self):
         realm = "http://sp.example.com/"
@@ -902,10 +916,11 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
             'oauth_consumer_key': con.key
         }
 
-        # If someone passes a sequence of bytes which is not ascii for
-        # url, we'll raise an exception as early as possible.
-        url = "http://sp.example.com/\x92" # It's actually cp1252-encoding...
-        self.assertRaises(TypeError, oauth.Request, method="GET", url=url, parameters=params)
+        if not PY3:
+            # If someone passes a sequence of bytes which is not ascii for
+            # url, we'll raise an exception as early as possible.
+            url = "http://sp.example.com/\x92" # It's actually cp1252-encoding...
+            self.assertRaises(TypeError, oauth.Request, method="GET", url=url, parameters=params)
 
         # And if they pass an unicode, then we'll use it.
         url = u('http://sp.example.com/') + _U2019

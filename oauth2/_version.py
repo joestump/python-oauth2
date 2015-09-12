@@ -4,7 +4,7 @@ manual_verstr = "1.9"
 
 
 
-auto_build_num = "0"
+auto_build_num = "0.post1"
 
 
 

@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/joestump/python-oauth2.svg)](https://travis-ci.org/joestump/python-oauth2)
+[![Join the chat at https://gitter.im/joestump/python-oauth2](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/joestump/python-oauth2?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 # Overview
 python-oauth2 is a python oauth library fully compatible with python versions: 2.6, 2.7, 3.3 and 3.4. This library is depended on by many other downstream packages such as Flask-Oauth.

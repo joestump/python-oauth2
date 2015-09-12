@@ -364,6 +364,14 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         self.assertEqual(req.normalized_url, exp2)
         self.assertEqual(req.url, url2)
 
+    def test_url_lowercases_scheme_and_authority(self):
+        """Lowercase scheme and authority in URL normalization."""
+        # http://oauth.net/core/1.0a/#rfc.section.9.1.2
+        # https://github.com/joestump/python-oauth2/issues/29
+        url = 'HTTP://Example.com/resource'
+        req = oauth.Request("GET", url)
+        self.assertEquals(req.normalized_url, "http://example.com/resource")
+
     def test_bad_url(self):
         request = oauth.Request()
         try:

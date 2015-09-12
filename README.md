@@ -1,6 +1,4 @@
-[![Join the chat at https://gitter.im/joestump/python-oauth2](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/joestump/python-oauth2?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)[![Build Status](http://img.shields.io/travis-ci/joestump/python-oauth2.png?branch=master&style=flat-square)](https://travis-ci.org/joestump/python-oauth2)
-
-![Number of issues](https://img.shields.io/github/issues/joestump/python-oauth2.svg)![Licence MIT](https://img.shields.io/badge/license-MIT-blue.svg)
+[![Join the chat at https://gitter.im/joestump/python-oauth2](https://img.shields.io/badge/gitter-join%20chat-1dce73.svg?style=flat-square)](https://gitter.im/joestump/python-oauth2?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](http://img.shields.io/travis-ci/joestump/python-oauth2.png?branch=master&style=flat-square)](https://travis-ci.org/joestump/python-oauth2) ![Number of issues](https://img.shields.io/github/issues/joestump/python-oauth2.svg?style=flat-square) ![Licence MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)
 
 # Overview
 python-oauth2 is a python oauth library fully compatible with python versions: 2.6, 2.7, 3.3 and 3.4. This library is depended on by many other downstream packages such as Flask-Oauth.

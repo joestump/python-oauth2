@@ -468,12 +468,20 @@ class Request(dict):
 
         # Include any query string parameters from the provided URL
         query = urlparse(self.url)[4]
-
         url_items = self._split_url_string(query).items()
         url_items = [(to_utf8(k), to_utf8_optional_iterator(v)) for k, v in url_items if k != 'oauth_signature' ]
-        items.extend(url_items)
+        
+        # Merge together URL and POST parameters.
+        # Eliminates parameters duplicated between URL and POST.
+        items_dict = {}
+        for k,v in items:
+            items_dict.setdefault(k, []).append(v)
+        for k,v in url_items:
+            if not (k in items_dict and v in items_dict[k]):
+                items.append((k,v))
 
         items.sort()
+
         encoded_str = urlencode(items, True)
         # Encode signature parameters per Oauth Core 1.0 protocol
         # spec draft 7, section 3.6

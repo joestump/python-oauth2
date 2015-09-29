@@ -744,6 +744,39 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
         self.assertEqual(expected, res)
 
+    def test_get_normalized_parameters_duplicate_url_and_post_parameters(self):
+        url = ("http://example.com/v2/search/videos"
+               '?oauth_nonce=79815175'
+               '&oauth_timestamp=1295397962'
+               '&oauth_consumer_key=mykey'
+               '&oauth_signature_method=HMAC-SHA1'
+               '&tag=one'
+               '&search=duplicate'
+               '&offset=10'
+               '&oauth_version=1.0'
+               '&oauth_signature=spWLI%2FGQjid7sQVd5%2FarahRxzJg%3D')
+
+        # duplicates the "search" query parameter in the post parameters (same key and value)
+        parameters = {
+            "tag": "two",
+            "search": "duplicate",
+        }
+        req = oauth.Request("POST", url, parameters)
+
+        res = req.get_normalized_parameters()
+
+        expected = ('oauth_consumer_key=mykey'
+                    '&oauth_nonce=79815175'
+                    '&oauth_signature_method=HMAC-SHA1'
+                    '&oauth_timestamp=1295397962'
+                    '&oauth_version=1.0'
+                    '&offset=10'
+                    '&search=duplicate'
+                    '&tag=one'
+                    '&tag=two')
+
+        self.assertEqual(expected, res)
+
     def test_get_normalized_parameters_multiple(self):
         url = "http://example.com/v2/search/videos?oauth_nonce=79815175&oauth_timestamp=1295397962&oauth_consumer_key=mykey&oauth_signature_method=HMAC-SHA1&oauth_version=1.0&offset=10&oauth_signature=spWLI%2FGQjid7sQVd5%2FarahRxzJg%3D&tag=one&tag=two"
 

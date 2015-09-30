@@ -756,7 +756,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
                '&oauth_version=1.0'
                '&oauth_signature=spWLI%2FGQjid7sQVd5%2FarahRxzJg%3D')
 
-        # duplicates the "search" query parameter in the post parameters (same key and value)
+        # duplicates the "search" query parameter
         parameters = {
             "tag": "two",
             "search": "duplicate",

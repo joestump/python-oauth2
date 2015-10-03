@@ -13,7 +13,7 @@ We recommend using [virtualenv](https://virtualenv.pypa.io/en/latest/).
 
 # Examples
 
-Examples can be found in the [wiki](./wiki/)
+Examples can be found in the [wiki](https://github.com/joestump/python-oauth2/wiki)
 
 # Running tests
 You can run tests using the following at the command line:

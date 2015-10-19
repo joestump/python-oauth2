@@ -1,4 +1,4 @@
-[![Join the chat at https://gitter.im/joestump/python-oauth2](https://img.shields.io/badge/gitter-join%20chat-1dce73.svg?style=flat-square)](https://gitter.im/joestump/python-oauth2?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](http://img.shields.io/travis-ci/joestump/python-oauth2.png?branch=master&style=flat-square)](https://travis-ci.org/joestump/python-oauth2) ![Number of issues](https://img.shields.io/github/issues/joestump/python-oauth2.svg?style=flat-square) ![Licence MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)
+[![Join the chat at https://gitter.im/joestump/python-oauth2](https://img.shields.io/badge/gitter-join%20chat-1dce73.svg?style=flat-square)](https://gitter.im/joestump/python-oauth2?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build Status](http://img.shields.io/travis-ci/joestump/python-oauth2.png?branch=master&style=flat-square)](https://travis-ci.org/joestump/python-oauth2) [![Coverage](https://img.shields.io/codecov/c/github/joestump/python-oauth2.svg?style=flat-square)](https://codecov.io/gh/joestump/python-oauth2) ![Number of issues](https://img.shields.io/github/issues/joestump/python-oauth2.svg?style=flat-square) ![Licence MIT](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)
 
 # Overview
 python-oauth2 is a python oauth library fully compatible with python versions: 2.6, 2.7, 3.3 and 3.4. This library is depended on by many other downstream packages such as Flask-Oauth.
@@ -13,7 +13,7 @@ We recommend using [virtualenv](https://virtualenv.pypa.io/en/latest/).
 
 # Examples
 
-Examples can be found in the [wiki](./wiki/)
+Examples can be found in the [wiki](https://github.com/joestump/python-oauth2/wiki)
 
 # Running tests
 You can run tests using the following at the command line:

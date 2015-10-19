@@ -5,5 +5,10 @@ python:
   - "3.3"
   - "3.4"
   - "3.5"
-install: "pip install -r requirements.txt"
-script: py.test 
+install:
+  - pip install -r requirements.txt
+  - pip install codecov pytest-cov
+script:
+  - py.test --cov=oauth2
+after_success:
+  - codecov

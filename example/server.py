@@ -36,9 +36,9 @@ RESOURCE_URL = 'http://photos.example.net/photos'
 REALM = 'http://photos.example.net/'
 VERIFIER = 'verifier'
 
+
 # example store for one of each thing
 class MockOAuthDataStore(oauth.OAuthDataStore):
-
     def __init__(self):
         self.consumer = oauth.OAuthConsumer('key', 'secret')
         self.request_token = oauth.OAuthToken('requestkey', 'requestsecret')
@@ -61,10 +61,10 @@ class MockOAuthDataStore(oauth.OAuthDataStore):
 
     def lookup_nonce(self, oauth_consumer, oauth_token, nonce):
         if (oauth_token and
-            oauth_consumer.key == self.consumer.key and
-            (oauth_token.key == self.request_token.key or
-             oauth_token.key == self.access_token.key) and
-            nonce == self.nonce):
+                    oauth_consumer.key == self.consumer.key and
+                (oauth_token.key == self.request_token.key or
+                         oauth_token.key == self.access_token.key) and
+                    nonce == self.nonce):
             return self.nonce
         return None
 
@@ -79,8 +79,8 @@ class MockOAuthDataStore(oauth.OAuthDataStore):
 
     def fetch_access_token(self, oauth_consumer, oauth_token, oauth_verifier):
         if (oauth_consumer.key == self.consumer.key and
-            oauth_token.key == self.request_token.key and
-            oauth_verifier == self.verifier):
+                    oauth_token.key == self.request_token.key and
+                    oauth_verifier == self.verifier):
             # want to check here if token is authorized
             # for mock store, we assume it is
             return self.access_token
@@ -93,14 +93,14 @@ class MockOAuthDataStore(oauth.OAuthDataStore):
             return self.request_token
         return None
 
-class RequestHandler(BaseHTTPRequestHandler):
 
+class RequestHandler(BaseHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         self.oauth_server = oauth.OAuthServer(MockOAuthDataStore())
         self.oauth_server.add_signature_method(
-                    oauth.OAuthSignatureMethod_PLAINTEXT())
+            oauth.OAuthSignatureMethod_PLAINTEXT())
         self.oauth_server.add_signature_method(
-                    oauth.OAuthSignatureMethod_HMAC_SHA1())
+            oauth.OAuthSignatureMethod_HMAC_SHA1())
         BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
     # example way to send an oauth error
@@ -110,13 +110,13 @@ class RequestHandler(BaseHTTPRequestHandler):
         # return the authenticate header
         header = oauth.build_authenticate_header(realm=REALM)
         for k, v in header.iteritems():
-            self.send_header(k, v) 
+            self.send_header(k, v)
 
     def do_GET(self):
 
         # debug info
-        #print self.command, self.path, self.headers
-        
+        # print self.command, self.path, self.headers
+
         # get the post data (if any)
         postdata = None
         if self.command == 'POST':
@@ -128,7 +128,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         # construct the oauth request from the request parameters
         oauth_request = oauth.OAuthRequest.from_request(self.command,
-            self.path, headers=self.headers, query_string=postdata)
+                                                        self.path, headers=self.headers, query_string=postdata)
 
         # request token
         if self.path.startswith(REQUEST_TOKEN_URL):
@@ -180,7 +180,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             try:
                 # verify the request has been oauth authorized
                 consumer, token, params = self.oauth_server.verify_request(
-                                                    oauth_request)
+                    oauth_request)
                 # send okay response
                 self.send_response(200, 'OK')
                 self.end_headers()
@@ -193,6 +193,7 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         return self.do_GET()
 
+
 def main():
     try:
         server = HTTPServer(('', 8080), RequestHandler)
@@ -200,6 +201,7 @@ def main():
         server.serve_forever()
     except KeyboardInterrupt:
         server.socket.close()
+
 
 if __name__ == '__main__':
     main()

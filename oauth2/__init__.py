@@ -776,7 +776,7 @@ class Server(object):
                         'string: %s' % base)
 
     def _check_timestamp(self, timestamp):
-        """Verify that timestamp is recentish."""
+        """Verify that timestamp is recent-ish."""
         timestamp = int(timestamp)
         now = int(time.time())
         lapsed = now - timestamp

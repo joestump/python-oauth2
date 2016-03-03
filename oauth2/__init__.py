@@ -176,12 +176,12 @@ def generate_timestamp():
 
 
 def generate_nonce(length=8):
-    """Generate pseudorandom number."""
+    """Generate pseudo-random number."""
     return ''.join([str(random.SystemRandom().randint(0, 9)) for i in range(length)])
 
 
 def generate_verifier(length=8):
-    """Generate pseudorandom number."""
+    """Generate pseudo-random number."""
     return ''.join([str(random.SystemRandom().randint(0, 9)) for i in range(length)])
 
 

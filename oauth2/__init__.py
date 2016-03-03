@@ -362,6 +362,7 @@ class Request(dict):
                 self[k] = v
         self.body = body
         self.is_form_encoded = is_form_encoded
+        self.normalized_url = None
 
     @setter
     def url(self, value):

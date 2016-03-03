@@ -102,7 +102,7 @@ def to_unicode(s):
             s = s.decode('utf-8')
         except UnicodeDecodeError as le:
             raise TypeError('You are required to pass either a unicode '
-                            'object or a utf-8-enccoded bytes string here. '
+                            'object or a utf-8-encoded bytes string here. '
                             'You passed a bytes object which contained '
                             'non-utf-8: %r. The UnicodeDecodeError that '
                             'resulted from attempting to interpret it as '

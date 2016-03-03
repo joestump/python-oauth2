@@ -825,7 +825,7 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
     name = 'HMAC-SHA1'
 
     def signing_base(self, request, consumer, token):
-        if (not hasattr(request, 'normalized_url') or request.normalized_url is None):
+        if not hasattr(request, 'normalized_url') or request.normalized_url is None:
             raise ValueError("Base URL for request is not set.")
 
         sig = (

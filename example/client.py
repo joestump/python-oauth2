@@ -46,9 +46,9 @@ RESOURCE_URL = 'http://photos.example.net/photos'
 CONSUMER_KEY = 'key'
 CONSUMER_SECRET = 'secret'
 
+
 # example client using httplib with headers
 class SimpleOAuthClient(oauth.OAuthClient):
-
     def __init__(self, server, port=httplib.HTTP_PORT, request_token_url='',
                  access_token_url='', authorization_url=''):
         self.server = server
@@ -57,13 +57,13 @@ class SimpleOAuthClient(oauth.OAuthClient):
         self.access_token_url = access_token_url
         self.authorization_url = authorization_url
         self.connection = httplib.HTTPConnection(
-                            "%s:%d" % (self.server, self.port))
+            "%s:%d" % (self.server, self.port))
 
     def fetch_request_token(self, oauth_request):
         # via headers
         # -> OAuthToken
         self.connection.request(oauth_request.http_method,
-            self.request_token_url, headers=oauth_request.to_header()) 
+                                self.request_token_url, headers=oauth_request.to_header())
         response = self.connection.getresponse()
         return oauth.OAuthToken.from_string(response.read())
 
@@ -71,7 +71,7 @@ class SimpleOAuthClient(oauth.OAuthClient):
         # via headers
         # -> OAuthToken
         self.connection.request(oauth_request.http_method,
-            self.access_token_url, headers=oauth_request.to_header()) 
+                                self.access_token_url, headers=oauth_request.to_header())
         response = self.connection.getresponse()
         return oauth.OAuthToken.from_string(response.read())
 
@@ -79,22 +79,22 @@ class SimpleOAuthClient(oauth.OAuthClient):
         # via url
         # -> typically just some okay response
         self.connection.request(oauth_request.http_method,
-            oauth_request.to_url()) 
+                                oauth_request.to_url())
         response = self.connection.getresponse()
         return response.read()
 
     def access_resource(self, oauth_request):
         # via post body
         # -> some protected resources
-        headers = {'Content-Type' :'application/x-www-form-urlencoded'}
+        headers = {'Content-Type': 'application/x-www-form-urlencoded'}
         self.connection.request('POST', RESOURCE_URL,
                                 body=oauth_request.to_postdata(),
                                 headers=headers)
         response = self.connection.getresponse()
         return response.read()
 
-def run_example():
 
+def run_example():
     # setup
     print('** OAuth Python Library Example **')
     client = SimpleOAuthClient(SERVER, PORT, REQUEST_TOKEN_URL,
@@ -159,10 +159,10 @@ def run_example():
     print('* Access protected resources ...')
     pause()
     parameters = {'file': 'vacation.jpg',
-                  'size': 'original'} # resource specific params
+                  'size': 'original'}  # resource specific params
     oauth_request = oauth.OAuthRequest.from_consumer_and_token(consumer,
-        token=token, http_method='POST', http_url=RESOURCE_URL,
-        parameters=parameters)
+                                                               token=token, http_method='POST', http_url=RESOURCE_URL,
+                                                               parameters=parameters)
     oauth_request.sign_request(signature_method_hmac_sha1, consumer, token)
     print('REQUEST (via post body)')
     print('parameters: %s' % str(oauth_request.parameters))
@@ -172,9 +172,11 @@ def run_example():
     print('non-oauth parameters: %s' % params)
     pause()
 
+
 def pause():
     print('')
     time.sleep(1)
+
 
 if __name__ == '__main__':
     run_example()

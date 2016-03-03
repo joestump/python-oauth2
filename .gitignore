@@ -1,6 +1,8 @@
 *.py?
 *.egg-info
 *.swp
+.idea
+*.iml
 .coverage
 coverage.xml
 nosetests.xml

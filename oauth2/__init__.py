@@ -177,12 +177,16 @@ def generate_timestamp():
 
 def generate_nonce(length=8):
     """Generate pseudo-random number."""
-    return ''.join([str(random.SystemRandom().randint(0, 9)) for i in range(length)])
+    return ''.join(
+        [str(random.SystemRandom().randint(0, 9)) for i in range(length)]
+    )
 
 
 def generate_verifier(length=8):
     """Generate pseudo-random number."""
-    return ''.join([str(random.SystemRandom().randint(0, 9)) for i in range(length)])
+    return ''.join(
+        [str(random.SystemRandom().randint(0, 9)) for i in range(length)]
+    )
 
 
 class Consumer(object):
@@ -437,7 +441,10 @@ class Request(dict):
         else:
             query = parse_qs(to_utf8(base_url.query))
             for k, v in self.items():
-                query.setdefault(to_utf8(k), []).append(to_utf8_optional_iterator(v))
+                query.setdefault(to_utf8(k), []).append(
+                    to_utf8_optional_iterator(v)
+                )
+
             scheme = to_utf8(base_url.scheme)
             netloc = to_utf8(base_url.netloc)
             path = to_utf8(base_url.path)
@@ -469,15 +476,19 @@ class Request(dict):
                     value = list(value)
                 except TypeError as e:
                     assert 'is not iterable' in str(e)
-                    items.append((to_utf8_if_string(key), to_utf8_if_string(value)))
+                    items.append(
+                        (to_utf8_if_string(key), to_utf8_if_string(value)))
                 else:
-                    items.extend((to_utf8_if_string(key), to_utf8_if_string(item)) for item in value)
+                    items.extend(
+                        (to_utf8_if_string(key), to_utf8_if_string(item)) for
+                        item in value)
 
         # Include any query string parameters from the provided URL
         query = urlparse(self.url)[4]
 
         url_items = self._split_url_string(query).items()
-        url_items = [(to_utf8(k), to_utf8_optional_iterator(v)) for k, v in url_items if k != 'oauth_signature']
+        url_items = [(to_utf8(k), to_utf8_optional_iterator(v)) for k, v in
+                     url_items if k != 'oauth_signature']
         items.extend(url_items)
 
         items.sort()
@@ -492,8 +503,6 @@ class Request(dict):
         """Set the signature parameter to the result of sign."""
 
         if not self.is_form_encoded:
-            # according to
-            # http://oauth.googlecode.com/svn/spec/ext/body_hash/1.0/oauth-bodyhash.html
             # section 4.1.1 "OAuth Consumers MUST NOT include an
             # oauth_body_hash parameter on requests with form-encoded
             # request bodies."
@@ -561,7 +570,8 @@ class Request(dict):
 
     @classmethod
     def from_consumer_and_token(cls, consumer, token=None,
-                                http_method=HTTP_METHOD, http_url=None, parameters=None,
+                                http_method=HTTP_METHOD, http_url=None,
+                                parameters=None,
                                 body=b'', is_form_encoded=False):
         if not parameters:
             parameters = {}
@@ -656,7 +666,8 @@ class Client(httplib2.Http):
         self.method = method
 
     def request(self, uri, method="GET", body=b'', headers=None,
-                redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
+                redirections=httplib2.DEFAULT_MAX_REDIRECTS,
+                connection_type=None):
         DEFAULT_POST_CONTENT_TYPE = 'application/x-www-form-urlencoded'
 
         if not isinstance(headers, dict):
@@ -675,8 +686,10 @@ class Client(httplib2.Http):
             parameters = None
 
         req = Request.from_consumer_and_token(self.consumer,
-                                              token=self.token, http_method=method, http_url=uri,
-                                              parameters=parameters, body=body, is_form_encoded=is_form_encoded)
+                                              token=self.token,
+                                              http_method=method, http_url=uri,
+                                              parameters=parameters, body=body,
+                                              is_form_encoded=is_form_encoded)
 
         req.sign_request(self.method, self.consumer, self.token)
 
@@ -782,8 +795,9 @@ class Server(object):
         lapsed = now - timestamp
         if lapsed > self.timestamp_threshold:
             raise Error('Expired timestamp: given %d and now %s has a '
-                        'greater difference than threshold %d' % (timestamp, now,
-                                                                  self.timestamp_threshold))
+                        'greater difference than threshold %d' % (
+                        timestamp, now,
+                        self.timestamp_threshold))
 
 
 class SignatureMethod(object):
@@ -826,7 +840,8 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
     name = 'HMAC-SHA1'
 
     def signing_base(self, request, consumer, token):
-        if not hasattr(request, 'normalized_url') or request.normalized_url is None:
+        if not hasattr(request,
+                       'normalized_url') or request.normalized_url is None:
             raise ValueError("Base URL for request is not set.")
 
         sig = (

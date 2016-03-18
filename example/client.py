@@ -63,7 +63,8 @@ class SimpleOAuthClient(oauth.OAuthClient):
         # via headers
         # -> OAuthToken
         self.connection.request(oauth_request.http_method,
-                                self.request_token_url, headers=oauth_request.to_header())
+                                self.request_token_url,
+                                headers=oauth_request.to_header())
         response = self.connection.getresponse()
         return oauth.OAuthToken.from_string(response.read())
 
@@ -71,7 +72,8 @@ class SimpleOAuthClient(oauth.OAuthClient):
         # via headers
         # -> OAuthToken
         self.connection.request(oauth_request.http_method,
-                                self.access_token_url, headers=oauth_request.to_header())
+                                self.access_token_url,
+                                headers=oauth_request.to_header())
         response = self.connection.getresponse()
         return oauth.OAuthToken.from_string(response.read())
 
@@ -160,9 +162,13 @@ def run_example():
     pause()
     parameters = {'file': 'vacation.jpg',
                   'size': 'original'}  # resource specific params
-    oauth_request = oauth.OAuthRequest.from_consumer_and_token(consumer,
-                                                               token=token, http_method='POST', http_url=RESOURCE_URL,
-                                                               parameters=parameters)
+    oauth_request = oauth.OAuthRequest.from_consumer_and_token(
+        consumer,
+        token=token,
+        http_method='POST',
+        http_url=RESOURCE_URL,
+        parameters=parameters
+    )
     oauth_request.sign_request(signature_method_hmac_sha1, consumer, token)
     print('REQUEST (via post body)')
     print('parameters: %s' % str(oauth_request.parameters))

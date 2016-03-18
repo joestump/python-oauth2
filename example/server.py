@@ -128,7 +128,9 @@ class RequestHandler(BaseHTTPRequestHandler):
 
         # construct the oauth request from the request parameters
         oauth_request = oauth.OAuthRequest.from_request(self.command,
-                                                        self.path, headers=self.headers, query_string=postdata)
+                                                        self.path,
+                                                        headers=self.headers,
+                                                        query_string=postdata)
 
         # request token
         if self.path.startswith(REQUEST_TOKEN_URL):

@@ -62,7 +62,8 @@ class OAuthHandler(webapp.RequestHandler):
             postdata = self.request.body
 
         return oauth.Request.from_request(method, self.request.uri,
-                                          headers=self.request.headers, query_string=postdata)
+                                          headers=self.request.headers,
+                                          query_string=postdata)
 
     def get_client(self, request=None):
         """Return the client from the OAuth parameters."""

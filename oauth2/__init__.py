@@ -356,7 +356,6 @@ class Request(dict):
 
     def __init__(self, method=HTTP_METHOD, url=None, parameters=None,
                  body=b'', is_form_encoded=False):
-        self.normalized_url = None
         if url is not None:
             self.url = to_unicode(url)
         self.method = method

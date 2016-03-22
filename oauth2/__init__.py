@@ -191,11 +191,11 @@ def generate_verifier(length=8):
 
 class Consumer(object):
     """A consumer of OAuth-protected services.
- 
+
     The OAuth consumer is a "third-party" service that wants to access
     protected resources from an OAuth service provider on behalf of an end
     user. It's kind of the OAuth client.
- 
+
     Usually a consumer must be registered with the service provider by the
     developer of the consumer software. As part of that process, the service
     provider gives the consumer a *key* and a *secret* with which the consumer
@@ -203,7 +203,7 @@ class Consumer(object):
     key in each request to identify itself, but will use its secret only when
     signing requests, to prove that the request is from that particular
     registered consumer.
- 
+
     Once registered, the consumer can then use its consumer credentials to ask
     the service provider for a request token, kicking off the OAuth
     authorization process.
@@ -229,12 +229,12 @@ class Consumer(object):
 class Token(object):
     """An OAuth credential used to request authorization or a protected
     resource.
- 
+
     Tokens in OAuth comprise a *key* and a *secret*. The key is included in
     requests to identify the token being used, but the secret is used only in
     the signature, to prove that the requester is who the server gave the
     token to.
- 
+
     When first negotiating the authorization, the consumer asks for a *request
     token* that the live user authorizes with the service provider. The
     consumer then exchanges the request token for an *access token* that can
@@ -279,7 +279,7 @@ class Token(object):
 
     def to_string(self):
         """Returns this token as a plain string, suitable for storage.
- 
+
         The resulting string includes the token's secret, so you should never
         send or store this string where a third party can read it.
         """
@@ -344,12 +344,12 @@ def setter(attr):
 class Request(dict):
     """The parameters and information for an HTTP request, suitable for
     authorizing with OAuth credentials.
- 
+
     When a consumer wants to access a service's protected resources, it does
     so using a signed HTTP request identifying itself (the consumer) with its
     key, and providing an access token authorized by the end user to access
     those resources.
- 
+
     """
 
     version = OAUTH_VERSION
@@ -382,7 +382,9 @@ class Request(dict):
                 raise ValueError("Unsupported URL %s (%s)." % (value, scheme))
 
             # Normalized URL excludes params, query, and fragment.
-            self.normalized_url = urlunsplit((scheme, netloc, path, None, None))
+            self.normalized_url = urlunsplit(
+                (scheme, netloc, path, None, None)
+            )
         else:
             self.normalized_url = None
             self.__dict__['url'] = None
@@ -505,7 +507,9 @@ class Request(dict):
             # section 4.1.1 "OAuth Consumers MUST NOT include an
             # oauth_body_hash parameter on requests with form-encoded
             # request bodies."
-            self['oauth_body_hash'] = base64.b64encode(sha1(self.body).digest())
+            self['oauth_body_hash'] = base64.b64encode(
+                sha1(self.body).digest()
+            )
 
         if 'oauth_consumer_key' not in self:
             self['oauth_consumer_key'] = consumer.key
@@ -703,14 +707,15 @@ class Client(httplib2.Http):
             headers.update(req.to_header(realm=realm))
 
         return httplib2.Http.request(self, uri, method=method, body=body,
-                                     headers=headers, redirections=redirections,
+                                     headers=headers,
+                                     redirections=redirections,
                                      connection_type=connection_type)
 
 
 class Server(object):
     """A skeletal implementation of a service provider, providing protected
     resources to requests from authorized consumers.
- 
+
     This class implements the logic to check requests for authorization. You
     can use it with your web server or web framework to protect certain
     resources with OAuth.
@@ -793,15 +798,18 @@ class Server(object):
         now = int(time.time())
         lapsed = now - timestamp
         if lapsed > self.timestamp_threshold:
-            raise Error('Expired timestamp: given %d and now %s has a '
-                        'greater difference than threshold %d' % (
-                        timestamp, now,
-                        self.timestamp_threshold))
+            raise Error(
+                'Expired timestamp: given %d and now %s has a '
+                'greater difference than threshold %d' % (
+                    timestamp, now,
+                    self.timestamp_threshold
+                )
+            )
 
 
 class SignatureMethod(object):
     """A way of signing requests.
- 
+
     The OAuth protocol lets consumers and service providers pick a way to sign
     requests. This interface shows the methods expected by the other `oauth`
     modules for signing requests. Subclass it and implement its methods to

@@ -134,7 +134,8 @@ def run_example():
     print('GOT')
     print(response)
     # sad way to get the verifier
-    import urlparse, cgi
+    import urlparse
+    import cgi
     query = urlparse.urlparse(response)[4]
     params = cgi.parse_qs(query, keep_blank_values=False)
     verifier = params['oauth_verifier'][0]

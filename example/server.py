@@ -54,17 +54,21 @@ class MockOAuthDataStore(oauth.OAuthDataStore):
     def lookup_token(self, token_type, token):
         token_attrib = getattr(self, '%s_token' % token_type)
         if token == token_attrib.key:
-            ## HACK
+            # HACK
             token_attrib.set_callback(CALLBACK_URL)
             return token_attrib
         return None
 
     def lookup_nonce(self, oauth_consumer, oauth_token, nonce):
-        if (oauth_token and
-                    oauth_consumer.key == self.consumer.key and
-                (oauth_token.key == self.request_token.key or
-                         oauth_token.key == self.access_token.key) and
-                    nonce == self.nonce):
+        if not oauth_token:
+            return None
+
+        consumer_key_set = oauth_consumer.key == self.consumer.key
+        access_token_equal = oauth_token.key == self.access_token.key
+        request_token_equal = oauth_token.key == self.request_token.key
+        token_set = access_token_equal or request_token_equal
+
+        if consumer_key_set and token_set and nonce == self.nonce:
             return self.nonce
         return None
 
@@ -78,9 +82,11 @@ class MockOAuthDataStore(oauth.OAuthDataStore):
         return None
 
     def fetch_access_token(self, oauth_consumer, oauth_token, oauth_verifier):
-        if (oauth_consumer.key == self.consumer.key and
-                    oauth_token.key == self.request_token.key and
-                    oauth_verifier == self.verifier):
+        consumer_key_set = oauth_consumer.key == self.consumer.key
+        token_key_set = oauth_token.key == self.request_token.key
+        verifier_set = oauth_verifier == self.verifier
+
+        if consumer_key_set and token_key_set and verifier_set:
             # want to check here if token is authorized
             # for mock store, we assume it is
             return self.access_token

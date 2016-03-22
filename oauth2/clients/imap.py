@@ -36,5 +36,8 @@ class IMAP4_SSL(imaplib.IMAP4_SSL):
         if token is not None and not isinstance(token, oauth2.Token):
             raise ValueError("Invalid token.")
 
-        imaplib.IMAP4_SSL.authenticate(self, 'XOAUTH',
-            lambda x: oauth2.build_xoauth_string(url, consumer, token))
+        imaplib.IMAP4_SSL.authenticate(
+            self, 'XOAUTH', lambda x: oauth2.build_xoauth_string(url,
+                                                                 consumer,
+                                                                 token)
+        )

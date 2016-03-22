@@ -184,8 +184,8 @@ class TestToken(unittest.TestCase):
         self.token.set_callback(None)
         self.assertEqual(self.token.callback, None)
         # TODO: The following test should probably not pass, but it does
-        #       To fix this, check for None and unset 'true' in set_callback
-        #       Additionally, should a confirmation truly be done of the callback?
+        #   To fix this, check for None and unset 'true' in set_callback
+        #   Additionally, should a confirmation truly be done of the callback?
         self.assertEqual(self.token.callback_confirmed, 'true')
 
     def test_set_verifier(self):
@@ -221,8 +221,8 @@ class TestToken(unittest.TestCase):
         self.assertEqual(url, '%s%s' % (cb, verifier_str))
 
     def test_to_string(self):
-        string = 'oauth_token=%s&oauth_token_secret=%s' % (
-        self.key, self.secret)
+        string = 'oauth_token=%s&oauth_token_secret=%s' % (self.key,
+                                                           self.secret)
         self.assertEqual(self.token.to_string(), string)
 
         self.token.set_callback('http://www.example.com/my-callback')
@@ -263,7 +263,8 @@ class TestToken(unittest.TestCase):
             'oauth_token=&oauth_token_secret='))
         self.assertRaises(ValueError,
                           lambda: oauth.Token.from_string(
-                              'oauth_token=tooken%26oauth_token_secret=seecret'))
+                              'oauth_token=tooken%26oauth_token_secret=seecret'
+                          ))
 
         string = self.token.to_string()
         new = oauth.Token.from_string(string)
@@ -412,8 +413,9 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
                           oauth.SignatureMethod_HMAC_SHA1(), consumer, token)
 
     def test_url_query(self):
-        url = (
-        "https://www.google.com/m8/feeds/contacts/default/full/?alt=json&max-contacts=10")
+        host = "https://www.google.com/"
+        path = "m8/feeds/contacts/default/full/?alt=json&max-contacts=10"
+        url = host + path
         normalized_url = urlunparse(urlparse(url)[:3] + (None, None, None))
         method = "GET"
         req = oauth.Request(method, url)
@@ -595,10 +597,9 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
         flat = [('multi', 'FOO'), ('multi', 'BAR')]
         del params['multi']
         flat.extend(params.items())
-        kf = lambda x: x[0]
         self.assertEqual(
-            sorted(flat, key=kf),
-            sorted(parse_qsl(req.to_postdata()), key=kf))
+            sorted(flat, key=lambda x: x[0]),
+            sorted(parse_qsl(req.to_postdata()), key=lambda x: x[0]))
 
     def test_to_url(self):
         url = "http://sp.example.com/"

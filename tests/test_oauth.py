@@ -499,7 +499,8 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
         req = oauth.Request("GET", "http://example.com", params)
 
-        # We need to split out the host and params and check individually since the order is not determinate.
+        # We need to split out the host and params and check
+        # individually since the order is not determinate.
         url_parts = req.to_url().split("?")
         host = url_parts[0]
         params = dict(

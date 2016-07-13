@@ -1626,6 +1626,14 @@ class TestClient(unittest.TestCase):
         self.assertTrue('multi=1' in mockHttpRequest.call_args[1]['body'])
         self.assertTrue('multi=2' in mockHttpRequest.call_args[1]['body'])
 
+    def test_form_encoded_post_with_charset_in_content_type(self):
+        client = oauth.Client(self.consumer, None)
+        headers = {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'}
+        resp, content = client.request(self._uri('request_token'), "POST",
+                                       headers=headers, body='param1=test1&param2=test2')
+        self.assertEqual(int(resp['status']), 200)
+
+
 if __name__ == "__main__":
     import os
     import sys

@@ -659,7 +659,7 @@ class Client(httplib2.Http):
                 DEFAULT_POST_CONTENT_TYPE)
 
         is_form_encoded = \
-            headers.get('Content-Type') == 'application/x-www-form-urlencoded'
+            headers.get('Content-Type', '').startswith('application/x-www-form-urlencoded')
 
         if is_form_encoded and body:
             parameters = parse_qs(body)

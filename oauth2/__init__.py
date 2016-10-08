@@ -397,7 +397,7 @@ class Request(dict):
         header_params = ('%s="%s"' % (k, v) for k, v in stringy_params)
         params_header = ', '.join(header_params)
  
-        auth_header = 'OAuth realm="%s"' % realm
+        auth_header = 'OAuth realm="%s"' % escape(realm)
         if params_header:
             auth_header = "%s, %s" % (auth_header, params_header)
  

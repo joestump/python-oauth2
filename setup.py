@@ -45,7 +45,7 @@ setup(name=PKG,
         "Natural Language :: English",
         "License :: OSI Approved :: MIT License"
       ],
-      packages = find_packages(),
+      packages = find_packages(exclude=['tests']),
       install_requires = ['httplib2'],
       license = "MIT License",
       keywords="oauth",

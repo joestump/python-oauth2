@@ -51,4 +51,4 @@ setup(name=PKG,
       keywords="oauth",
       zip_safe = True,
       test_suite="tests",
-      tests_require=['coverage', 'mock'])
+      tests_require=['mock'])

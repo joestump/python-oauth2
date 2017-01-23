@@ -484,7 +484,7 @@ class Request(dict):
     def sign_request(self, signature_method, consumer, token):
         """Set the signature parameter to the result of sign."""
 
-        if not self.is_form_encoded:
+        if (not self.is_form_encoded) and self.body is not None:
             # according to
             # http://oauth.googlecode.com/svn/spec/ext/body_hash/1.0/oauth-bodyhash.html
             # section 4.1.1 "OAuth Consumers MUST NOT include an

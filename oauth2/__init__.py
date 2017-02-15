@@ -699,9 +699,17 @@ class Server(object):
     timestamp_threshold = 300 # In seconds, five minutes.
     version = OAUTH_VERSION
     signature_methods = None
+    data_store = None
 
-    def __init__(self, signature_methods=None):
+    def __init__(self, signature_methods=None, data_store=None):
+        self.data_store = data_store
         self.signature_methods = signature_methods or {}
+
+    def set_data_store(self, data_store):
+        self.data_store = data_store
+
+    def get_data_store(self):
+        return self.data_store
 
     def add_signature_method(self, signature_method):
         self.signature_methods[signature_method.name] = signature_method
@@ -752,6 +760,7 @@ class Server(object):
     def _check_signature(self, request, consumer, token):
         timestamp, nonce = request._get_timestamp_nonce()
         self._check_timestamp(timestamp)
+        self._check_nonce(consumer, token, nonce)
         signature_method = self._get_signature_method(request)
 
         signature = request.get('oauth_signature')
@@ -776,6 +785,29 @@ class Server(object):
             raise Error('Expired timestamp: given %d and now %s has a '
                 'greater difference than threshold %d' % (timestamp, now, 
                     self.timestamp_threshold))
+
+    def _check_nonce(self, consumer, token, nonce):
+        """Verify that the nonce is uniqueish."""
+        if self.data_store is not None: 
+            nonce = self.data_store.lookup_nonce(consumer, token, nonce)
+            if nonce:
+                raise Error('Nonce already used: %s' % str(nonce))
+
+class DataStore(object):
+
+    """A database abstraction used to lookup nonce.
+
+To use your backend store with the `oauth` module, implement a subclass of
+this class that performs its methods using your database or storage
+system. Then, when using `oauth.Server`, supply it with an instance of
+your custom `DataStore` class to have objects stored in natively in your
+own data store.
+
+"""
+
+    def lookup_nonce(self, consumer, token, nonce):
+        """-> OAuthToken."""
+        raise NotImplementedError
 
 
 class SignatureMethod(object):

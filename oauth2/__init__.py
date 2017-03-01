@@ -769,8 +769,8 @@ class Server(object):
 
     def _check_timestamp(self, timestamp):
         """Verify that timestamp is recentish."""
-        timestamp = int(timestamp)
-        now = int(time.time())
+        timestamp = float(timestamp)
+        now = time.time()
         lapsed = now - timestamp
         if lapsed > self.timestamp_threshold:
             raise Error('Expired timestamp: given %d and now %s has a '

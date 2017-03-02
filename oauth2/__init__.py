@@ -178,6 +178,25 @@ def generate_verifier(length=8):
     return ''.join([str(random.SystemRandom().randint(0, 9)) for i in range(length)])
 
 
+def normalize_url(value):
+    if value:
+        scheme, netloc, path, params, query, fragment = urlparse.urlparse(value)
+
+        # Exclude default port numbers.
+        if scheme == 'http' and netloc[-3:] == ':80':
+            netloc = netloc[:-3]
+        elif scheme == 'https' and netloc[-4:] == ':443':
+            netloc = netloc[:-4]
+        if scheme not in ('http', 'https'):
+            raise ValueError("Unsupported URL %s (%s)." % (value, scheme))
+
+        # Normalized URL excludes params, query, and fragment.
+        normalized_url = urlparse.urlunparse((scheme, netloc, path, None, None, None))
+        return normalized_url
+    else:
+        return None
+
+
 class Consumer(object):
     """A consumer of OAuth-protected services.
  
@@ -547,6 +566,9 @@ class Request(dict):
         url_params = cls._split_url_string(param_str)
         parameters.update(url_params)
  
+        # Simply normalize URL: remove default port numbers if existing
+        http_url = normalize_url(http_url)
+
         if parameters:
             return cls(http_method, http_url, parameters)
  

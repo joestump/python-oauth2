@@ -489,9 +489,7 @@ class Request(dict):
             # http://oauth.googlecode.com/svn/spec/ext/body_hash/1.0/oauth-bodyhash.html
             # section 4.1.1 "OAuth Consumers MUST NOT include an
             # oauth_body_hash parameter on requests with form-encoded
-            # request bodies."
-            if not self.body:
-               self.body = ''
+            # request bodies. "
             self['oauth_body_hash'] = base64.b64encode(sha1(self.body).digest())
 
         if 'oauth_consumer_key' not in self:

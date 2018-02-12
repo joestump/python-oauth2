@@ -353,6 +353,7 @@ class Request(dict):
             for k, v in parameters.items():
                 k = to_unicode(k)
                 v = to_unicode_optional_iterator(v)
+
                 self[k] = v
         self.body = body
         self.is_form_encoded = is_form_encoded
@@ -490,7 +491,7 @@ class Request(dict):
             # section 4.1.1 "OAuth Consumers MUST NOT include an
             # oauth_body_hash parameter on requests with form-encoded
             # request bodies."
-            self['oauth_body_hash'] = base64.b64encode(sha1(self.body).digest())
+            self['oauth_body_hash'] = base64.b64encode(sha1(to_utf8(self.body)).digest())
 
         if 'oauth_consumer_key' not in self:
             self['oauth_consumer_key'] = consumer.key
@@ -540,6 +541,7 @@ class Request(dict):
         # GET or POST query string.
         if query_string:
             query_params = cls._split_url_string(query_string)
+
             parameters.update(query_params)
  
         # URL parameters.
@@ -757,6 +759,8 @@ class Server(object):
         signature = request.get('oauth_signature')
         if signature is None:
             raise MissingSignature('Missing oauth_signature.')
+        if isinstance(signature, str):
+            signature = signature.encode('ascii', 'ignore')
 
         # Validate the signature.
         valid = signature_method.check(request, consumer, token, signature)

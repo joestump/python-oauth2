@@ -655,6 +655,9 @@ class Client(httplib2.Http):
         redirections=httplib2.DEFAULT_MAX_REDIRECTS, connection_type=None):
         DEFAULT_POST_CONTENT_TYPE = 'application/x-www-form-urlencoded'
 
+        if body is None:
+            body = b''
+
         if not isinstance(headers, dict):
             headers = {}
 

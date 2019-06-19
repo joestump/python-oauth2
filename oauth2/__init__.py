@@ -355,6 +355,8 @@ class Request(dict):
                 v = to_unicode_optional_iterator(v)
 
                 self[k] = v
+        if not isinstance(body, bytes):
+            body = body.encode('utf-8')
         self.body = body
         self.is_form_encoded = is_form_encoded
 

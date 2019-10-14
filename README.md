@@ -5,7 +5,7 @@
 # Overview
 python-oauth2 is a python oauth library fully compatible with python versions: 2.6, 2.7, 3.3 and 3.4. This library is depended on by many other downstream packages such as Flask-Oauth.
 
-# Installing
+# Installing 
 
 You can install `oauth2` via [the PIP package](https://pypi.python.org/pypi/oauth2). 
 
@@ -33,4 +33,4 @@ This code was originally forked from [Leah Culver and Andy Smith's oauth.py code
 * Classes are no longer prefixed with <code>OAuth</code>.
 * The <code>Request</code> class now extends from <code>dict</code>.
 * The library is likely no longer compatible with Python 2.3.
-* The <code>Client</code> class works and extends from <code>httplib2</code>. It's a thin wrapper that handles automatically signing any normal HTTP request you might wish to make.
+* The <code>Client</code> class works and extends from <code>httplib2</code>. It's a thin wrapper that handles automatically signing any normal HTTP request you might  wish to make.

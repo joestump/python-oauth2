@@ -965,7 +965,7 @@ class TestRequest(unittest.TestCase, ReallyEqualMixin):
 
         # Example 1a from Appendix A.1 of
         # http://oauth.googlecode.com/svn/spec/ext/body_hash/1.0/oauth-bodyhash.html
-        # Except that we get a differetn result than they do.
+        # Except that we get a different result than they do.
 
         params = {
             'oauth_version': "1.0",

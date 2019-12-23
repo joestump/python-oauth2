@@ -60,7 +60,11 @@ class MockOAuthDataStore(oauth.OAuthDataStore):
         return None
 
     def lookup_nonce(self, oauth_consumer, oauth_token, nonce):
-        if oauth_token and oauth_consumer.key == self.consumer.key and (oauth_token.key == self.request_token.key or oauth_token.key == self.access_token.key) and nonce == self.nonce:
+        if (oauth_token and
+            oauth_consumer.key == self.consumer.key and
+            (oauth_token.key == self.request_token.key or
+             oauth_token.key == self.access_token.key) and
+            nonce == self.nonce):
             return self.nonce
         return None
 
@@ -74,7 +78,9 @@ class MockOAuthDataStore(oauth.OAuthDataStore):
         return None
 
     def fetch_access_token(self, oauth_consumer, oauth_token, oauth_verifier):
-        if oauth_consumer.key == self.consumer.key and oauth_token.key == self.request_token.key and oauth_verifier == self.verifier:
+        if (oauth_consumer.key == self.consumer.key and
+            oauth_token.key == self.request_token.key and
+            oauth_verifier == self.verifier):
             # want to check here if token is authorized
             # for mock store, we assume it is
             return self.access_token
@@ -91,8 +97,10 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def __init__(self, *args, **kwargs):
         self.oauth_server = oauth.OAuthServer(MockOAuthDataStore())
-        self.oauth_server.add_signature_method(oauth.OAuthSignatureMethod_PLAINTEXT())
-        self.oauth_server.add_signature_method(oauth.OAuthSignatureMethod_HMAC_SHA1())
+        self.oauth_server.add_signature_method(
+                    oauth.OAuthSignatureMethod_PLAINTEXT())
+        self.oauth_server.add_signature_method(
+                    oauth.OAuthSignatureMethod_HMAC_SHA1())
         BaseHTTPRequestHandler.__init__(self, *args, **kwargs)
 
     # example way to send an oauth error
@@ -119,7 +127,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                 pass
 
         # construct the oauth request from the request parameters
-        oauth_request = oauth.OAuthRequest.from_request(self.command, self.path, headers=self.headers, query_string=postdata)
+        oauth_request = oauth.OAuthRequest.from_request(self.command,
+            self.path, headers=self.headers, query_string=postdata)
 
         # request token
         if self.path.startswith(REQUEST_TOKEN_URL):
@@ -131,7 +140,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 # return the token
                 self.wfile.write(token.to_string())
-            except oauth.OAuthError, err:
+            except oauth.OAuthError as err:
                 self.send_oauth_error(err)
             return
 
@@ -148,7 +157,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 # return the callback url (to show server has it)
                 self.wfile.write(token.get_callback_url())
-            except oauth.OAuthError, err:
+            except oauth.OAuthError as err:
                 self.send_oauth_error(err)
             return
 
@@ -162,7 +171,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 # return the token
                 self.wfile.write(token.to_string())
-            except oauth.OAuthError, err:
+            except oauth.OAuthError as err:
                 self.send_oauth_error(err)
             return
 
@@ -170,13 +179,14 @@ class RequestHandler(BaseHTTPRequestHandler):
         if self.path.startswith(RESOURCE_URL):
             try:
                 # verify the request has been oauth authorized
-                consumer, token, params = self.oauth_server.verify_request(oauth_request)
+                consumer, token, params = self.oauth_server.verify_request(
+                                                    oauth_request)
                 # send okay response
                 self.send_response(200, 'OK')
                 self.end_headers()
                 # return the extra parameters - just for something to return
                 self.wfile.write(str(params))
-            except oauth.OAuthError, err:
+            except oauth.OAuthError as err:
                 self.send_oauth_error(err)
             return
 
@@ -186,7 +196,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 def main():
     try:
         server = HTTPServer(('', 8080), RequestHandler)
-        print 'Test server running...'
+        print('Test server running...')
         server.serve_forever()
     except KeyboardInterrupt:
         server.socket.close()

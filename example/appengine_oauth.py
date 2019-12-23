@@ -86,7 +86,7 @@ class OAuthHandler(webapp.RequestHandler):
             request = self.get_oauth_request()
             client = self.get_client(request)
             params = self._server.verify_request(request, client, None)
-        except Exception, e:
+        except Exception as e:
             raise e
 
         return client
@@ -95,7 +95,7 @@ class SampleHandler(OAuthHandler):
     def get(self):
         try:
             client = self.is_valid()
-        except Exception, e:
+        except Exception as e:
             self.error(500)
             self.response.out.write(e)
 

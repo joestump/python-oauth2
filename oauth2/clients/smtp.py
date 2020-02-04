@@ -38,4 +38,4 @@ class SMTP(smtplib.SMTP):
             raise ValueError("Invalid token.")
 
         self.docmd('AUTH', 'XOAUTH %s' % \
-            base64.b64encode(oauth2.build_xoauth_string(url, consumer, token)))
+            base64.b64encode(oauth2.build_xoauth_string(url, consumer, token).encode()))

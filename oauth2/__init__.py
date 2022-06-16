@@ -24,6 +24,7 @@ THE SOFTWARE.
 
 import base64
 from hashlib import sha1
+from hashlib import sha256
 import time
 import random
 import hmac
@@ -353,7 +354,6 @@ class Request(dict):
             for k, v in parameters.items():
                 k = to_unicode(k)
                 v = to_unicode_optional_iterator(v)
-
                 self[k] = v
         self.body = body
         self.is_form_encoded = is_form_encoded
@@ -491,9 +491,7 @@ class Request(dict):
             # section 4.1.1 "OAuth Consumers MUST NOT include an
             # oauth_body_hash parameter on requests with form-encoded
             # request bodies."
-            if not self.body:
-               self.body = ''
-            self['oauth_body_hash'] = base64.b64encode(sha1(to_utf8(self.body)).digest())
+            self['oauth_body_hash'] = base64.b64encode(sha1(self.body).digest())
 
         if 'oauth_consumer_key' not in self:
             self['oauth_consumer_key'] = consumer.key
@@ -543,7 +541,6 @@ class Request(dict):
         # GET or POST query string.
         if query_string:
             query_params = cls._split_url_string(query_string)
-
             parameters.update(query_params)
  
         # URL parameters.
@@ -761,8 +758,6 @@ class Server(object):
         signature = request.get('oauth_signature')
         if signature is None:
             raise MissingSignature('Missing oauth_signature.')
-        if isinstance(signature, str):
-            signature = signature.encode('ascii', 'ignore')
 
         # Validate the signature.
         valid = signature_method.check(request, consumer, token, signature)
@@ -844,6 +839,34 @@ class SignatureMethod_HMAC_SHA1(SignatureMethod):
         key, raw = self.signing_base(request, consumer, token)
 
         hashed = hmac.new(key, raw, sha1)
+
+        # Calculate the digest base 64.
+        return binascii.b2a_base64(hashed.digest())[:-1]
+
+class SignatureMethod_HMAC_SHA256(SignatureMethod):
+    name = 'HMAC-SHA256'
+
+    def signing_base(self, request, consumer, token):
+        if (not hasattr(request, 'normalized_url') or request.normalized_url is None):
+            raise ValueError("Base URL for request is not set.")
+
+        sig = (
+            escape(request.method),
+            escape(request.normalized_url),
+            escape(request.get_normalized_parameters()),
+        )
+
+        key = '%s&' % escape(consumer.secret)
+        if token:
+            key += escape(token.secret)
+        raw = '&'.join(sig)
+        return key.encode('ascii'), raw.encode('ascii')
+
+    def sign(self, request, consumer, token):
+        """Builds the base signature string."""
+        key, raw = self.signing_base(request, consumer, token)
+
+        hashed = hmac.new(key, raw, sha256)
 
         # Calculate the digest base 64.
         return binascii.b2a_base64(hashed.digest())[:-1]
